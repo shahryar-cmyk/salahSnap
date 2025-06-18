@@ -1,2 +1,7 @@
-# salahSnap
-This is the App which take photos and covert that into the Alarms. 
+# SalahSnapVersionSecond
+
+A new Flutter project.
+
+## Getting Started
+
+FlutterFlow projects are built to run on the Flutter _stable_ release.
