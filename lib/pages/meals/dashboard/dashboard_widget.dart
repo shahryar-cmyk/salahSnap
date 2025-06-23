@@ -1,3 +1,8 @@
+import 'dart:io';
+
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
@@ -22,6 +27,51 @@ class DashboardWidget extends StatefulWidget {
 
 class _DashboardWidgetState extends State<DashboardWidget> {
   late DashboardModel _model;
+  String extractedText = '';
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+
+    if (pickedFile != null) {
+      final inputImage = InputImage.fromFile(File(pickedFile.path));
+      final textRecognizer = TextRecognizer();
+      final RecognizedText recognizedText =
+          await textRecognizer.processImage(inputImage);
+
+      setState(() {
+        extractedText = recognizedText.text;
+      });
+    }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera_alt),
+              title: Text('Camera'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo),
+              title: Text('Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -52,17 +102,36 @@ class _DashboardWidgetState extends State<DashboardWidget> {
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         floatingActionButton: Align(
           alignment: AlignmentDirectional(1.0, 1.0),
-          child: FloatingActionButton(
-            onPressed: () async {
-              await actions.openCamera();
-            },
-            backgroundColor: FlutterFlowTheme.of(context).primary,
-            elevation: 8.0,
-            child: Icon(
-              Icons.camera_alt,
-              color: FlutterFlowTheme.of(context).info,
-              size: 24.0,
-            ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FloatingActionButton(
+                onPressed: () async {
+                  await actions.openCamera();
+                },
+                backgroundColor: FlutterFlowTheme.of(context).primary,
+                elevation: 8.0,
+                child: Icon(
+                  Icons.alarm,
+                  color: FlutterFlowTheme.of(context).info,
+                  size: 24.0,
+                ),
+              ),
+              SizedBox(
+                width: 20,
+              ),
+              FloatingActionButton(
+                onPressed: _showImageSourceDialog,
+                backgroundColor: FlutterFlowTheme.of(context).primary,
+                elevation: 8.0,
+                child: Icon(
+                  Icons.camera_alt,
+                  color: FlutterFlowTheme.of(context).info,
+                  size: 24.0,
+                ),
+              ),
+            ],
           ),
         ),
         appBar: AppBar(
