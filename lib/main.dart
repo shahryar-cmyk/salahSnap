@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'auth/custom_auth/auth_util.dart';
@@ -19,7 +20,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   GoRouter.optionURLReflectsImperativeAPIs = true;
   usePathUrlStrategy();
-
   await FlutterFlowTheme.initialize();
 
   await authManager.initialize();

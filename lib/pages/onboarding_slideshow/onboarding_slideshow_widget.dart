@@ -139,7 +139,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                           model: _model.customAppbarModel,
                           updateCallback: () => safeSetState(() {}),
                           child: CustomAppbarWidget(
-                            backButton: true,
+                            backButton: false,
                             actionButton: false,
                             optionsButton: false,
                             actionButtonAction: () async {},
