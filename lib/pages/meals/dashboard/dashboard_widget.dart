@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:salah_snap_version_second/pages/meals/dashboard/ImageToImage.dart';
 
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -107,8 +108,9 @@ class _DashboardWidgetState extends State<DashboardWidget> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               FloatingActionButton(
-                onPressed: () async {
-                  await actions.openCamera();
+                onPressed: () {
+                  Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => ImageTOText()));
                 },
                 backgroundColor: FlutterFlowTheme.of(context).primary,
                 elevation: 8.0,
