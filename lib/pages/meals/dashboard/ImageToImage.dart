@@ -1,3 +1,4 @@
+// ✅ Same Imports – keep them
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -16,7 +17,7 @@ class _ImageTOTextState extends State<ImageTOText> {
   String _text = "";
   final Map<String, String> _prayerTimes = {};
 
-  // Define the order of prayers to display
+  // Display order
   final List<Map<String, String>> _prayerOrder = [
     {'key': 'Fajr', 'name': 'Fajr'},
     {'key': 'Dhuhr', 'name': 'Dhuhr'},
@@ -25,6 +26,7 @@ class _ImageTOTextState extends State<ImageTOText> {
     {'key': 'Isha', 'name': 'Isha'},
   ];
 
+  /// ⬇️ Show camera/gallery selector
   Future<void> _showImageSourceDialog() async {
     showModalBottomSheet(
       context: context,
@@ -53,13 +55,16 @@ class _ImageTOTextState extends State<ImageTOText> {
     );
   }
 
+  /// ⬇️ Pick image & perform full OCR + parsing
   Future<void> pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source);
 
     if (pickedFile != null) {
+      // Step 1: Convert to grayscale
       File grayImage = await convertToGrayscale(File(pickedFile.path));
 
+      // Step 2: OCR using ML Kit
       final inputImage = InputImage.fromFilePath(grayImage.path);
       final textRecognizer =
           TextRecognizer(script: TextRecognitionScript.latin);
@@ -82,7 +87,13 @@ class _ImageTOTextState extends State<ImageTOText> {
     img.Image? original = img.decodeImage(bytes);
     if (original == null) return imageFile;
 
+    // Step 1: Convert to grayscale
     img.Image grayscale = img.grayscale(original);
+
+    // ✅ Step 2: Increase contrast (1.5 is a good starting point)
+    grayscale = img.adjustColor(grayscale, contrast: 0.3);
+
+    // Save the new image
     final grayPath = imageFile.path
         .replaceFirst('.jpg', '_gray.jpg')
         .replaceFirst('.png', '_gray.png');
@@ -91,20 +102,22 @@ class _ImageTOTextState extends State<ImageTOText> {
     return newFile;
   }
 
+  /// ⬇️ Convert Arabic digits to English
   String convertArabicToEnglishDigits(String input) {
     const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
     const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-
     for (int i = 0; i < arabic.length; i++) {
       input = input.replaceAll(arabic[i], english[i]);
     }
     return input;
   }
 
+  /// ⬇️ Parse times & labels from OCR text
   void _parsePrayerTimes(String text) {
     final lines = text.split('\n');
     final times = <String>[];
 
+    // Arabic prayer names mapped to English
     final Map<String, String> knownLabels = {
       "الفجر": "Fajr",
       "الظهر": "Dhuhr",
@@ -113,9 +126,10 @@ class _ImageTOTextState extends State<ImageTOText> {
       "العشاء": "Isha",
     };
 
+    // Time format: HH:MM or H:MM using colon or Arabic decimal
     final timeRegex = RegExp(r'(\d{1,2})[:٫](\d{2})');
 
-    // First pass: Extract all times in order
+    // Step 1: Collect raw times
     for (final line in lines) {
       final cleanLine = convertArabicToEnglishDigits(line);
       final match = timeRegex.firstMatch(cleanLine);
@@ -126,7 +140,7 @@ class _ImageTOTextState extends State<ImageTOText> {
       }
     }
 
-    // Second pass: Try to match with labels
+    // Step 2: Map times with labels if found
     bool foundLabeledTimes = false;
     for (final line in lines) {
       final cleanLine = convertArabicToEnglishDigits(line);
@@ -143,7 +157,7 @@ class _ImageTOTextState extends State<ImageTOText> {
       }
     }
 
-    // If no labeled times found, assign in order (first time to Fajr, second to Dhuhr, etc.)
+    // Step 3: Fallback – Assign in order
     if (!foundLabeledTimes && times.isNotEmpty) {
       for (int i = 0; i < times.length && i < _prayerOrder.length; i++) {
         _prayerTimes[_prayerOrder[i]['key']!] = times[i];
@@ -182,6 +196,16 @@ class _ImageTOTextState extends State<ImageTOText> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
+                        });
+                      },
+                      child: const Text("Remove alphabets"),
+                    ),
+                  ),
                   if (_text.isNotEmpty) ...[
                     const Text(
                       "Raw Extracted Text:",
@@ -199,7 +223,6 @@ class _ImageTOTextState extends State<ImageTOText> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    // Display prayer times in order
                     Column(
                       children: _prayerOrder.map((prayer) {
                         final time = _prayerTimes[prayer['key']];
@@ -218,9 +241,7 @@ class _ImageTOTextState extends State<ImageTOText> {
                                     ),
                                     Text(
                                       time,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                      ),
+                                      style: const TextStyle(fontSize: 18),
                                     ),
                                   ],
                                 ),
@@ -238,3 +259,42 @@ class _ImageTOTextState extends State<ImageTOText> {
     );
   }
 }
+// Future<File> convertToGrayscale(File imageFile) async {
+//     final bytes = await imageFile.readAsBytes();
+//     img.Image? original = img.decodeImage(bytes);
+//     if (original == null) return imageFile;
+
+//     // Step 1: Convert to grayscale
+//     img.Image grayscale = img.grayscale(original);
+
+//     // Step 2: Apply threshold to keep only light text (adjust threshold as needed)
+//     final threshold = 200; // Higher value = more text kept (range: 0-255)
+//     grayscale = img.copyResize(grayscale, width: grayscale.width);
+
+//     // Create a new transparent image
+//     img.Image transparent = img.Image.from(grayscale);
+
+//     for (int y = 0; y < grayscale.height; y++) {
+//       for (int x = 0; x < grayscale.width; x++) {
+//         final pixel = grayscale.getPixel(x, y);
+//         final luminance = img.getLuminance(pixel);
+
+//         // If pixel is dark (background), make it transparent
+//         if (luminance < threshold) {
+//           transparent.setPixel(x, y, img.ColorRgba8(0, 0, 0, 0)); // Transparent
+//         } else {
+//           // Keep light text as white
+//           transparent.setPixel(
+//               x, y, img.ColorRgba8(255, 255, 255, 255)); // White
+//         }
+//       }
+//     }
+
+//     // Save as PNG to preserve transparency
+//     final transparentPath = imageFile.path
+//         .replaceFirst('.jpg', '_transparent.png')
+//         .replaceFirst('.png', '_transparent.png');
+//     final newFile = File(transparentPath);
+//     await newFile.writeAsBytes(img.encodePng(transparent));
+//     return newFile;
+//   }
