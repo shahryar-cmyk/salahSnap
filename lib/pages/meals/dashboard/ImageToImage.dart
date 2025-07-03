@@ -55,7 +55,7 @@ class _ImageTOTextState extends State<ImageTOText> {
     );
   }
 
-  /// ⬇️ Pick image & perform full OCR + parsing
+  /// ⬇️ Pick image & perform full OCR + parsing //
   Future<void> pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source);
@@ -197,13 +197,49 @@ class _ImageTOTextState extends State<ImageTOText> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
-                        });
-                      },
-                      child: const Text("Remove alphabets"),
+                    child: Row(
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
+                            });
+                          },
+                          child: const Text("Remove alphabets"),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
+                            });
+                          },
+                          child: const Text("Remove alphabets"),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
+                            });
+                          },
+                          child: const Text("Remove alphabets"),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
+                            });
+                          },
+                          child: const Text("Remove alphabets"),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
+                            });
+                          },
+                          child: const Text("Remove alphabets"),
+                        ),
+                      ],
                     ),
                   ),
                   if (_text.isNotEmpty) ...[
