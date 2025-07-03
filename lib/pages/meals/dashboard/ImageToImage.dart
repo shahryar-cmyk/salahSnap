@@ -55,27 +55,54 @@ class _ImageTOTextState extends State<ImageTOText> {
     );
   }
 
+  Future<File> applySharpness(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    img.Image? original = img.decodeImage(bytes);
+    if (original == null) return imageFile;
+
+    // Sharpening kernel (standard 3x3 sharpen matrix)
+    final sharpenKernel = [
+      0,
+      -1,
+      0,
+      -1,
+      5,
+      -1,
+      0,
+      -1,
+      0,
+    ];
+
+    // Apply convolution filter
+    img.Image sharpened =
+        img.convolution(original, div: 1, offset: 0, filter: []);
+
+    // Save image
+    final sharpPath = imageFile.path
+        .replaceFirst('.jpg', '_sharp.jpg')
+        .replaceFirst('.png', '_sharp.png');
+    final newFile = File(sharpPath);
+    await newFile.writeAsBytes(img.encodeJpg(sharpened));
+    return newFile;
+  }
+
   /// ⬇️ Pick image & perform full OCR + parsing //
   Future<void> pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source);
 
     if (pickedFile != null) {
-      // Step 1: Convert to grayscale
-      File grayImage = await convertToGrayscale(File(pickedFile.path));
-
-      // Step 2: OCR using ML Kit
-      final inputImage = InputImage.fromFilePath(grayImage.path);
+      final inputImage = InputImage.fromFilePath(pickedFile.path);
       final textRecognizer =
           TextRecognizer(script: TextRecognitionScript.latin);
       final RecognizedText recognizedText =
           await textRecognizer.processImage(inputImage);
 
       setState(() {
-        _image = grayImage;
+        _image = File(pickedFile.path);
         _text = recognizedText.text;
-        _prayerTimes.clear();
-        _parsePrayerTimes(_text);
+        _prayerTimes.clear(); // Clear previous data
+        _parsePrayerTimes(_text); // Parse the extracted text
       });
 
       textRecognizer.close();
@@ -197,7 +224,7 @@ class _ImageTOTextState extends State<ImageTOText> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(
-                    child: Row(
+                    child: Column(
                       children: [
                         ElevatedButton(
                           onPressed: () {
@@ -213,7 +240,18 @@ class _ImageTOTextState extends State<ImageTOText> {
                               _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
                             });
                           },
-                          child: const Text("Remove alphabets"),
+                          child: const Text("Remove Background"),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            if (_image != null) {
+                              File sharpImage = await applySharpness(_image!);
+                              setState(() {
+                                _image = sharpImage;
+                              });
+                            }
+                          },
+                          child: const Text("Add Sharpness"),
                         ),
                         ElevatedButton(
                           onPressed: () {
@@ -221,23 +259,19 @@ class _ImageTOTextState extends State<ImageTOText> {
                               _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
                             });
                           },
-                          child: const Text("Remove alphabets"),
+                          child: const Text("Add Contrast"),
                         ),
                         ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
-                            });
+                          onPressed: () async {
+                            if (_image != null) {
+                              File grayImage =
+                                  await convertToGrayscale(_image!);
+                              setState(() {
+                                _image = grayImage;
+                              });
+                            }
                           },
-                          child: const Text("Remove alphabets"),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
-                            });
-                          },
-                          child: const Text("Remove alphabets"),
+                          child: const Text("Add Grayscale"),
                         ),
                       ],
                     ),
