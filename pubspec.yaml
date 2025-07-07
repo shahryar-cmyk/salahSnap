@@ -84,6 +84,9 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.0
   image: ^4.1.7
+  flutter_image_compress: ^2.4.0
+  background_remover: ^0.0.3
+  image_background_remover: ^1.0.0
 
 dependency_overrides:
   http: 1.2.2
