@@ -92,14 +92,19 @@ class _ImageTOTextState extends State<ImageTOText> {
     final pickedFile = await picker.pickImage(source: source);
 
     if (pickedFile != null) {
-      final inputImage = InputImage.fromFilePath(pickedFile.path);
+      // Step 1: Convert to grayscale
+      File originalFile = File(pickedFile.path);
+      File grayImage = await convertToGrayscale(originalFile);
+
+      // Step 2: OCR on grayscale image
+      final inputImage = InputImage.fromFilePath(grayImage.path);
       final textRecognizer =
           TextRecognizer(script: TextRecognitionScript.latin);
       final RecognizedText recognizedText =
           await textRecognizer.processImage(inputImage);
 
       setState(() {
-        _image = File(pickedFile.path);
+        _image = grayImage;
         _text = recognizedText.text;
         _prayerTimes.clear(); // Clear previous data
         _parsePrayerTimes(_text); // Parse the extracted text
@@ -117,10 +122,24 @@ class _ImageTOTextState extends State<ImageTOText> {
     // Step 1: Convert to grayscale
     img.Image grayscale = img.grayscale(original);
 
-    // ✅ Step 2: Increase contrast (1.5 is a good starting point)
-    grayscale = img.adjustColor(grayscale, contrast: 0.3);
+    // Step 2: Increase contrast
+    grayscale = img.adjustColor(grayscale, contrast: 1.0);
 
-    // Save the new image
+    // ✅ Step 3: Apply sharpness using convolution filter
+    final sharpenKernel = [
+      0,
+      -1,
+      0,
+      -1,
+      5,
+      -1,
+      0,
+      -1,
+      0,
+    ];
+    grayscale = img.convolution(grayscale, filter: sharpenKernel, div: 1);
+
+    // Step 4: Save the processed image
     final grayPath = imageFile.path
         .replaceFirst('.jpg', '_gray.jpg')
         .replaceFirst('.png', '_gray.png');
@@ -235,11 +254,7 @@ class _ImageTOTextState extends State<ImageTOText> {
                           child: const Text("Remove alphabets"),
                         ),
                         ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
-                            });
-                          },
+                          onPressed: () {},
                           child: const Text("Remove Background"),
                         ),
                         ElevatedButton(
@@ -251,7 +266,7 @@ class _ImageTOTextState extends State<ImageTOText> {
                               });
                             }
                           },
-                          child: const Text("Add Sharpness"),
+                          child: const Text("Remove Sharpness"),
                         ),
                         ElevatedButton(
                           onPressed: () {
@@ -259,19 +274,11 @@ class _ImageTOTextState extends State<ImageTOText> {
                               _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
                             });
                           },
-                          child: const Text("Add Contrast"),
+                          child: const Text("Remove Contrast"),
                         ),
                         ElevatedButton(
-                          onPressed: () async {
-                            if (_image != null) {
-                              File grayImage =
-                                  await convertToGrayscale(_image!);
-                              setState(() {
-                                _image = grayImage;
-                              });
-                            }
-                          },
-                          child: const Text("Add Grayscale"),
+                          onPressed: () async {},
+                          child: const Text("Remove Grayscale"),
                         ),
                       ],
                     ),
@@ -329,42 +336,3 @@ class _ImageTOTextState extends State<ImageTOText> {
     );
   }
 }
-// Future<File> convertToGrayscale(File imageFile) async {
-//     final bytes = await imageFile.readAsBytes();
-//     img.Image? original = img.decodeImage(bytes);
-//     if (original == null) return imageFile;
-
-//     // Step 1: Convert to grayscale
-//     img.Image grayscale = img.grayscale(original);
-
-//     // Step 2: Apply threshold to keep only light text (adjust threshold as needed)
-//     final threshold = 200; // Higher value = more text kept (range: 0-255)
-//     grayscale = img.copyResize(grayscale, width: grayscale.width);
-
-//     // Create a new transparent image
-//     img.Image transparent = img.Image.from(grayscale);
-
-//     for (int y = 0; y < grayscale.height; y++) {
-//       for (int x = 0; x < grayscale.width; x++) {
-//         final pixel = grayscale.getPixel(x, y);
-//         final luminance = img.getLuminance(pixel);
-
-//         // If pixel is dark (background), make it transparent
-//         if (luminance < threshold) {
-//           transparent.setPixel(x, y, img.ColorRgba8(0, 0, 0, 0)); // Transparent
-//         } else {
-//           // Keep light text as white
-//           transparent.setPixel(
-//               x, y, img.ColorRgba8(255, 255, 255, 255)); // White
-//         }
-//       }
-//     }
-
-//     // Save as PNG to preserve transparency
-//     final transparentPath = imageFile.path
-//         .replaceFirst('.jpg', '_transparent.png')
-//         .replaceFirst('.png', '_transparent.png');
-//     final newFile = File(transparentPath);
-//     await newFile.writeAsBytes(img.encodePng(transparent));
-//     return newFile;
-//   }
