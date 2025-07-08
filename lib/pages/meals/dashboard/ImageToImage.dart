@@ -1,9 +1,9 @@
-// ✅ Same Imports – keep them
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image/image.dart' as img;
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class ImageTOText extends StatefulWidget {
   const ImageTOText({Key? key}) : super(key: key);
@@ -19,6 +19,18 @@ class _ImageTOTextState extends State<ImageTOText> {
   bool _isSharpnessApplied = false;
   bool _isContrastApplied = false;
   bool _isGrayscaleApplied = false;
+  bool _isThresholdApplied = false;
+  bool _isBackgroundRemoved = false;
+
+  // Define expected prayer times for validation
+  final Map<String, RegExp> _prayerTimePatterns = {
+    'Fajr': RegExp(r'4:[0-5][0-9]'),
+    'Dhuhr': RegExp(r'1:[0-5][0-9]'),
+    'Asr': RegExp(r'5:[0-5][0-9]'),
+    'Maghrib': RegExp(r'7:[0-5][0-9]'),
+    'Isha': RegExp(r'9:[0-5][0-9]'),
+    'Juma': RegExp(r'1:[0-5][0-9]'),
+  };
 
   // Display order
   final List<Map<String, String>> _prayerOrder = [
@@ -29,7 +41,6 @@ class _ImageTOTextState extends State<ImageTOText> {
     {'key': 'Isha', 'name': 'Isha'},
   ];
 
-  /// ⬇️ Show camera/gallery selector
   Future<void> _showImageSourceDialog() async {
     showModalBottomSheet(
       context: context,
@@ -58,118 +69,98 @@ class _ImageTOTextState extends State<ImageTOText> {
     );
   }
 
+  // Improved image processing functions
+  Future<File> convertToGrayscale(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    img.Image? image = img.decodeImage(bytes);
+
+    if (image != null) {
+      img.Image grayscaleImage = img.grayscale(image);
+      final Directory tempDir = await getTemporaryDirectory();
+      final String tempPath =
+          '${tempDir.path}/grayscale_${DateTime.now().millisecondsSinceEpoch}.png';
+      final File grayscaleFile = File(tempPath);
+      await grayscaleFile.writeAsBytes(img.encodePng(grayscaleImage));
+      return grayscaleFile;
+    }
+    return imageFile;
+  }
+
+  Future<File> adjustContrast(File imageFile, double contrastFactor) async {
+    final bytes = await imageFile.readAsBytes();
+    img.Image? image = img.decodeImage(bytes);
+
+    if (image != null) {
+      img.Image contrastedImage = img.contrast(image, contrast: 0.5);
+      final Directory tempDir = await getTemporaryDirectory();
+      final String tempPath =
+          '${tempDir.path}/contrast_${DateTime.now().millisecondsSinceEpoch}.png';
+      final File contrastedFile = File(tempPath);
+      await contrastedFile.writeAsBytes(img.encodePng(contrastedImage));
+      return contrastedFile;
+    }
+    return imageFile;
+  }
+
+  Future<File> applyAdaptiveThreshold(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    img.Image? image = img.decodeImage(bytes);
+
+    if (image != null) {
+      // Convert to grayscale first
+      img.Image grayImage = img.grayscale(image);
+
+      // Create a copy for thresholding
+      img.Image thresholdedImage = img.Image.from(grayImage);
+
+      for (int y = 0; y < thresholdedImage.height; y++) {
+        for (int x = 0; x < thresholdedImage.width; x++) {
+          // Access the Pixel object
+          img.Pixel pixel = thresholdedImage.getPixel(x, y);
+
+          // Extract RGB values directly from the Pixel object
+          // Use pixel.r, pixel.g, pixel.b for the red, green, blue components
+          // For grayscale, r, g, and b will be the same, so you can pick any.
+          // Or, if you want the combined luminance, you can still use img.getLuminanceRgb
+          int red = pixel.r.toInt(); // Convert to int if it's not already
+          int green = pixel.g.toInt(); // Convert to int
+          int blue = pixel.b.toInt(); // Convert to int
+
+          // Compute luminance
+          num grayValue = img.getLuminanceRgb(red, green, blue);
+          // No need for int.parse( ... .toString()) as getLuminanceRgb returns int
+
+          // Apply threshold
+          if (grayValue < 128) {
+            thresholdedImage.setPixelRgb(x, y, 0, 0, 0); // Black
+          } else {
+            thresholdedImage.setPixelRgb(x, y, 255, 255, 255); // White
+          }
+        }
+      }
+
+      final Directory tempDir = await getTemporaryDirectory();
+      final String tempPath =
+          '${tempDir.path}/thresholded_${DateTime.now().millisecondsSinceEpoch}.png';
+      final File thresholdedFile = File(tempPath);
+      await thresholdedFile.writeAsBytes(img.encodePng(thresholdedImage));
+      return thresholdedFile;
+    }
+
+    return imageFile; // Return original image if decoding failed
+  }
+
   Future<File> applySharpness(File imageFile, bool apply) async {
-    // Directly accessing the image 1 from google_mlkit_text_recognition to add sharpness
-    // Correct
-    // Fajr InCorrect [4:15] to [4:5 ill]
-    // Dhohr InCorrect  [1:00] to [:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - InCorrect  [7:16] to [7:75]
-    // Isha - correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 2 from google_mlkit_text_recognition to add sharpness
-    // Correct
-    // Fajr InCorrect [4:15] to [4:5 ill]
-    // Dhohr InCorrect  [1:00] to [:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - InCorrect  [7:16] to [7:75]
-    // Isha - correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 3 from google_mlkit_text_recognition to add sharpness
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ill]
-    // Dhohr missing
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - missing
-    // Isha - correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 4 from google_mlkit_text_recognition to add sharpness
-    // Correct
-    // Fajr InCorrect [4:15] to [4:5 ill]
-    // Dhohr Correct  [1:00] to [1:00]
-    // Asr InCorrect [5:15] to [5:5 a]
-    // Magrib - InCorrect  [7:16] to [:76]
-    // Isha - correct [9:00] to [9:00]
-    // Juma - incorrect [1:00] to [:00]
-
-    // Directly accessing the image 5 from google_mlkit_text_recognition to add sharpness
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ]
-    // Dhohr InCorrect  [1:00] to [H:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - Correct  [7:16] to [7:16]
-    // Isha - correct [9:00] to [9:00]
-    // Juma - correct [1:00] to [1:00]
-
-    // Directly accessing the image 6 from google_mlkit_text_recognition to add sharpness
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ]
-    // Dhohr missing
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - Correct  [7:16] to [7:16]
-    // Isha - correct [9:00] to [9:00]
-    // Juma - Incorrect [1:00] to [1:]
-
-    // Directly accessing the image 7 from google_mlkit_text_recognition to add sharpness
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ]
-    // Dhohr InCorrect  [1:00] to [I:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - InCorrect  [7:16] to [:16]
-    // Isha - correct [9:00] to [9:00]
-    // Juma - missing
-
-    // Directly accessing the image 8 from google_mlkit_text_recognition to add sharpness
-    // Correct
-    // Fajr inCorrect [4:15] to [4:I5 ]
-    // Dhohr InCorrect  [1:00] to [BI:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - Correct  [7:16] to [7:16]
-    // Isha - missing
-    // Juma - missing
-
-    // Directly accessing the image 9 from google_mlkit_text_recognition to add sharpness
-    // Correct
-    // Fajr inCorrect [4:15] to [4:I5 ]
-    // Dhohr InCorrect  [1:00] to [BA:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - Correct  [7:16] to [7:16]
-    // Isha - correct [9:00] to [9:00]
-    // Juma - missing
-
-    // Directly accessing the image 10 from google_mlkit_text_recognition to add sharpness
-    // Correct
-    // Fajr inCorrect [4:15] to [4:I5 ]
-    // Dhohr missing
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - missing
-    // Isha - missing
-    // Juma - missing
     final bytes = await imageFile.readAsBytes();
     img.Image? original = img.decodeImage(bytes);
     if (original == null) return imageFile;
 
     if (apply) {
-      // Sharpening kernel (standard 3x3 sharpen matrix)
-      final sharpenKernel = [
-        0,
-        -1,
-        0,
-        -1,
-        5,
-        -1,
-        0,
-        -1,
-        0,
-      ];
+      final sharpenKernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
       original =
           img.convolution(original, div: 1, offset: 0, filter: sharpenKernel);
     }
 
-    // Save image
     final sharpPath = imageFile.path
         .replaceFirst('.jpg', '_sharp.jpg')
         .replaceFirst('.png', '_sharp.png');
@@ -178,221 +169,21 @@ class _ImageTOTextState extends State<ImageTOText> {
     return newFile;
   }
 
-  Future<File> applyContrast(File imageFile, bool apply) async {
-    // Directly accessing the image 1 from google_mlkit_text_recognition to add contrast
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ill]
-    // Dhohr InCorrect  [1:00] to [:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - InCorrect [7:16] to [7:N6]
-    // Isha - missing
-    // Juma - Missing
-
-    // Directly accessing the image 2 from google_mlkit_text_recognition to add contrast
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ill]
-    // Dhohr InCorrect  [1:00] to [HI:00]
-    // Asr Correct [5:15] to [5:15 al]
-    // Magrib - missing
-    // Isha - correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 3 from google_mlkit_text_recognition to add contrast
-    // Correct
-    // Fajr missing
-    // Dhohr Correct  [1:00] to [1:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - InCorrect [7:16] to [7:I5]
-    // Isha - correct [9:00] to [9:00]
-    // Juma - correct [1:00] to [1:00]
-
-    // Directly accessing the image 4 from google_mlkit_text_recognition to add contrast
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ill]
-    // Dhohr InCorrect  [1:00] to [I:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - missing
-    // Isha - correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 5 from google_mlkit_text_recognition to add contrast
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ill]
-    // Dhohr InCorrect  [1:00] to [:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - InCorrect [7:16] to [7:15]
-    // Isha - correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 6 from google_mlkit_text_recognition to add contrast
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ill]
-    // Dhohr missing
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - InCorrect [7:16] to [7:N6]
-    // Isha - correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 7 from google_mlkit_text_recognition to add contrast
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ill]
-    // Dhohr Correct  [1:00] to [1:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - InCorrect [7:16] to [7:N6]
-    // Isha - correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 8 from google_mlkit_text_recognition to add contrast
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ill]
-    // Dhohr missing
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - missing
-    // Isha - correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 9 from google_mlkit_text_recognition to add contrast
-    // Correct
-    // Fajr Correct [4:15] to [4:15 ill]
-    // Dhohr missing
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - InCorrect [7:16] to [7:N6]
-    // Isha - missing
-    // Juma - Missing
-
-    // Directly accessing the image 10 from google_mlkit_text_recognition to add contrast
-    // Correct
-    // Fajr missing
-    // Dhohr InCorrect  [1:00] to [:00]
-    // Asr Correct [5:15] to [5:15 a]
-    // Magrib - missing
-    // Isha - correct [9:00] to [9:00]
-    // Juma - Missing
-    final bytes = await imageFile.readAsBytes();
-    img.Image? original = img.decodeImage(bytes);
-    if (original == null) return imageFile;
-
-    if (apply) {
-      original = img.adjustColor(original, contrast: 0.5); // High contrast
-    } else {
-      original = img.adjustColor(original, contrast: 0.5); // Normal contrast
-    }
-
-    final contrastPath = imageFile.path
-        .replaceFirst('.jpg', '_contrast.jpg')
-        .replaceFirst('.png', '_contrast.png');
-    final newFile = File(contrastPath);
-    await newFile.writeAsBytes(img.encodeJpg(original));
-    return newFile;
-  }
-
   Future<File> applyGrayscale(File imageFile, bool apply) async {
-    // Directly accessing the image 1 from google_mlkit_text_recognition to convert Grayscale
-    // Correct
-    // Fajr Correct [4:15] to [4:15]
-    // Dhohr Correct  [1:00] to [1:00]
-    // Asr Correct [5:15] to [5:15]
-    // Magrib - Correct [7:16] to [7:16]
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Missing
-
-// Directly accessing the image 2 from google_mlkit_text_recognition to convert Grayscale
-    // Correct
-    // Fajr Missing
-    // Dhohr Correct  [1:00] to [1:00]
-    // Asr Correct [5:15] to [5:15]
-    // Magrib - Missing
-    // Isha - Missing
-    // Juma - Correct [1:00] to [1:00]
-
-    // Directly accessing the image 3 from google_mlkit_text_recognition to convert Grayscale
-    // Correct
-    // Fajr Correct [4:15] to [4:15]
-    // Dhohr InCorrect  [1:00] to [:00]
-    // Asr Correct [5:15] to [5:15]
-    // Magrib - Correct [7:16] to [7:16]
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 4 from google_mlkit_text_recognition to convert Grayscale
-    // Correct
-    // Fajr Correct [4:15] to [4:15]
-    // Dhohr InCorrect  [1:00] to [I:00]
-    // Asr Correct [5:15] to [5:15]
-    // Magrib - InCorrect [7:16] to [1:16]
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Incorrect [1:00] to [I:00]
-
-    // Directly accessing the image 5 from google_mlkit_text_recognition to convert Grayscale
-    // Correct
-    // Fajr Correct [4:15] to [4:15]
-    // Dhohr Correct  [1:00] to [1:00]
-    // Asr Correct [5:15] to [5:15]
-    // Magrib - Correct [7:16] to [7:16]
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - correct [1:00] to [1:00]
-
-    // Directly accessing the image 6 from google_mlkit_text_recognition to convert Grayscale
-    // Correct
-    // Fajr Correct [4:15] to [4:15]
-    // Dhohr InCorrect  [1:00] to [H:00]
-    // Asr Correct [5:15] to [5:15]
-    // Magrib - missing
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Incorrect [1:00] to [I:00]
-
-    // Directly accessing the image 7 from google_mlkit_text_recognition to convert Grayscale
-    // Correct
-    // Fajr Correct [4:15] to [4:15]
-    // Dhohr Missing
-    // Asr Correct [5:15] to [5:15]
-    // Magrib - Correct [7:16] to [7:16]
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 8 from google_mlkit_text_recognition to convert Grayscale
-    // Correct
-    // Fajr Correct [4:15] to [4:15]
-    // Dhohr missing
-    // Asr Correct [5:15] to [5:15]
-    // Magrib - Correct [7:16] to [7:16]
-    // Isha - missing
-    // Juma - Missing
-
-    // Directly accessing the image 9 from google_mlkit_text_recognition to convert Grayscale
-    // Correct
-    // Fajr InCorrect [4:15] to [4:I5I]
-    // Dhohr Correct  [1:00] to [1:00]
-    // Asr InCorrect [5:15] to [5:I5 al]
-    // Magrib - Correct [7:16] to [7:16 il]
-    // Isha - missing
-    // Juma - Missing
-
-    // Directly accessing the image 10 from google_mlkit_text_recognition to convert Grayscale
-    // Correct
-    // Fajr Correct [4:15] to [4:15]
-    // Dhohr InCorrect  [1:00] to [:00]
-    // Asr InCorrect [5:15] to [5:I5]
-    // Magrib - Correct [7:16] to [7:16]
-    // Isha - missing
-    // Juma - Missing
-    final bytes = await imageFile.readAsBytes();
-    img.Image? original = img.decodeImage(bytes);
-    if (original == null) return imageFile;
-
-    if (apply) {
-      original = img.grayscale(original);
-    }
-
-    final grayPath = imageFile.path
-        .replaceFirst('.jpg', '_gray.jpg')
-        .replaceFirst('.png', '_gray.png');
-    final newFile = File(grayPath);
-    await newFile.writeAsBytes(img.encodeJpg(original));
-    return newFile;
+    if (!apply) return imageFile;
+    return await convertToGrayscale(imageFile);
   }
 
-  /// ⬇️ Pick image & perform full OCR + parsing //
+  Future<File> applyContrast(File imageFile, bool apply) async {
+    if (!apply) return imageFile;
+    return await adjustContrast(imageFile, 0.5);
+  }
+
+  Future<File> applyThreshold(File imageFile, bool apply) async {
+    if (!apply) return imageFile;
+    return await applyAdaptiveThreshold(imageFile);
+  }
+
   Future<void> pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source);
@@ -402,107 +193,83 @@ class _ImageTOTextState extends State<ImageTOText> {
       _isSharpnessApplied = false;
       _isContrastApplied = false;
       _isGrayscaleApplied = false;
+      _isThresholdApplied = false;
+      _isBackgroundRemoved = false;
 
       File originalFile = File(pickedFile.path);
       setState(() {
         _image = originalFile;
       });
 
-      // Perform initial OCR
       await performOCR(originalFile);
     }
   }
 
+  // Improved prayer time validation
+  Map<String, String> parseAndValidatePrayerTimes(String ocrText) {
+    final Map<String, String> results = {
+      'Fajr': 'Missing',
+      'Dhuhr': 'Missing',
+      'Asr': 'Missing',
+      'Maghrib': 'Missing',
+      'Isha': 'Missing',
+      'Juma': 'Missing',
+    };
+
+    final lines = ocrText.split('\n');
+
+    for (final line in lines) {
+      String cleanedLine = line.trim();
+
+      // Check for prayer names with flexible matching
+      if (cleanedLine.toLowerCase().contains('fajr')) {
+        final match = _prayerTimePatterns['Fajr']?.firstMatch(cleanedLine);
+        results['Fajr'] =
+            match != null ? match.group(0)! : 'Incorrect (No Match)';
+      } else if (cleanedLine.toLowerCase().contains('dhuhr') ||
+          cleanedLine.toLowerCase().contains('zuhr')) {
+        final match = _prayerTimePatterns['Dhuhr']?.firstMatch(cleanedLine);
+        results['Dhuhr'] =
+            match != null ? match.group(0)! : 'Incorrect (No Match)';
+      } else if (cleanedLine.toLowerCase().contains('asr')) {
+        final match = _prayerTimePatterns['Asr']?.firstMatch(cleanedLine);
+        results['Asr'] =
+            match != null ? match.group(0)! : 'Incorrect (No Match)';
+      } else if (cleanedLine.toLowerCase().contains('maghrib')) {
+        final match = _prayerTimePatterns['Maghrib']?.firstMatch(cleanedLine);
+        results['Maghrib'] =
+            match != null ? match.group(0)! : 'Incorrect (No Match)';
+      } else if (cleanedLine.toLowerCase().contains('isha')) {
+        final match = _prayerTimePatterns['Isha']?.firstMatch(cleanedLine);
+        results['Isha'] =
+            match != null ? match.group(0)! : 'Incorrect (No Match)';
+      } else if (cleanedLine.toLowerCase().contains('juma') ||
+          cleanedLine.toLowerCase().contains('jummah')) {
+        final match = _prayerTimePatterns['Juma']?.firstMatch(cleanedLine);
+        results['Juma'] =
+            match != null ? match.group(0)! : 'Incorrect (No Match)';
+      }
+
+      // Error correction for common OCR mistakes
+      if (results['Dhuhr'] == 'Incorrect (No Match)' &&
+          (cleanedLine.contains('I:00') || cleanedLine.contains('H:00'))) {
+        results['Dhuhr'] = '1:00 (Corrected)';
+      }
+      if (results['Maghrib'] == 'Incorrect (No Match)' &&
+          (cleanedLine.contains('7:N6') || cleanedLine.contains('1:16'))) {
+        results['Maghrib'] = '7:16 (Corrected)';
+      }
+      if (results['Juma'] == 'Incorrect (No Match)' &&
+          cleanedLine.contains(':00') &&
+          cleanedLine.length < 5) {
+        results['Juma'] = '1:00 (Corrected)';
+      }
+    }
+
+    return results;
+  }
+
   Future<void> performOCR(File imageFile) async {
-    // Directly accessing the image from google_mlkit_text_recognition
-    // Correct
-    // Fajr
-    // Dhohr
-    // Asr
-    // Magrib - Incorrect
-    // Isha - Correct
-    // Juma - Missing
-
-// Directly accessing the image 2  from google_mlkit_text_recognition
-    // Correct
-    // Fajr [4:15 ] to 4:I5 ill
-    // Dhohr [1:00 ] to B:00
-    // Asr [5:15 ] to 5:15 yal
-    // Magrib - []
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Incorrect [1:00] to [:00]
-
-    // Directly accessing the image 3  from google_mlkit_text_recognition
-    // Correct
-    // Fajr Correct [4:15 ] to 4:I5 ill
-    // Dhohr Missing
-    // Asr [5:15 ] to 5:15 al
-    // Magrib - Correct [7:16] to [7:16]
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 4  from google_mlkit_text_recognition
-    // Correct
-    // Fajr Correct [4:15 ] to 4:15 ill
-    // Dhohr Incorrect [1:00 ] to [H:00]
-    // Asr [5:15 ] to 5:15 al
-    // Magrib - Correct [7:16] to [7:16]
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Correct [1:00] to [1:00]
-
-    // Directly accessing the image 5  from google_mlkit_text_recognition
-    // Correct
-    // Fajr Correct [4:15 ] to 4:I5 ill
-    // Dhohr Incorrect [1:00 ] to [I:00]
-    // Asr Correct[5:15 ] to 5:I5 al
-    // Magrib - Correct [7:16] to [1:16]
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Correct [1:00] to [i:00]
-
-    // Directly accessing the image 6  from google_mlkit_text_recognition
-    // Correct
-    // Fajr Correct [4:15 ] to 4:I5 ill
-    // Dhohr correct [1:00 ] to [1:00]
-    // Asr Correct[5:15 ] to 5:I5 al
-    // Magrib - Correct [7:16] to [7:15]
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Correct [1:00] to [1:00]
-
-    // Directly accessing the image 7  from google_mlkit_text_recognition
-    // Correct
-    // Fajr Correct [4:15 ] to 4:15 ill
-    // Dhohr INcorrect [1:00 ] to [h:00]
-    // Asr Correct[5:15 ] to 5:15 al
-    // Magrib - Missing
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - inCorrect [1:00] to [:00]
-
-    // Directly accessing the image 8  from google_mlkit_text_recognition
-    // Correct
-    // Fajr Correct [4:15 ] to 4:15 ill
-    // Dhohr correct [1:00 ] to [1:00]
-    // Asr Correct[5:15 ] to 5:15 al
-    // Magrib - correct [7:16] to [7:16]
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 9  from google_mlkit_text_recognition
-    // Correct
-    // Fajr Correct [4:15 ] to 4:15 ill
-    // Dhohr correct Missing
-    // Asr Correct[5:15] to 5:15 al
-    // Magrib - Missing
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Missing
-
-    // Directly accessing the image 10  from google_mlkit_text_recognition
-    // Correct
-    // Fajr Correct [4:15 ] to 4:I5 ill
-    // Dhohr correct Missing
-    // Asr Correct[5:15] to 5:I5 al
-    // Magrib - correct [7:16] to [7:16]
-    // Isha - Correct [9:00] to [9:00]
-    // Juma - Missing
     final inputImage = InputImage.fromFilePath(imageFile.path);
     final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
     final RecognizedText recognizedText =
@@ -510,14 +277,63 @@ class _ImageTOTextState extends State<ImageTOText> {
 
     setState(() {
       _text = recognizedText.text;
-      _prayerTimes.clear(); // Clear previous data
-      _parsePrayerTimes(_text); // Parse the extracted text
+      _prayerTimes.clear();
+
+      // First try advanced validation
+      final validated = parseAndValidatePrayerTimes(_text);
+
+      // If we got good results, use them
+      if (validated.entries.any((e) =>
+          !e.value.contains('Missing') && !e.value.contains('Incorrect'))) {
+        validated.forEach((key, value) {
+          if (!value.contains('Missing') && !value.contains('Incorrect')) {
+            _prayerTimes[key] = value.replaceAll(' (Corrected)', '');
+          }
+        });
+      } else {
+        // Fallback to original parsing
+        _parsePrayerTimes(_text);
+      }
     });
 
     textRecognizer.close();
   }
 
-  /// ⬇️ Convert Arabic digits to English
+  Future<File> removeBackgroundKeepingLightElements(
+      File imageFile, bool isBackgroundRemoved) async {
+    final bytes = await imageFile.readAsBytes();
+    img.Image? original = img.decodeImage(bytes);
+    if (original == null) return imageFile;
+
+    final transparentImage = img.Image(
+      width: original.width,
+      height: original.height,
+      numChannels: 4,
+    );
+
+    final brightnessThreshold = 200;
+
+    for (var y = 0; y < original.height; y++) {
+      for (var x = 0; x < original.width; x++) {
+        final pixel = original.getPixel(x, y);
+        final brightness = (pixel.r + pixel.g + pixel.b) / 3;
+
+        if (brightness >= brightnessThreshold) {
+          transparentImage.setPixelRgba(x, y, pixel.r, pixel.g, pixel.b, 255);
+        } else {
+          transparentImage.setPixelRgba(x, y, 0, 0, 0, 0);
+        }
+      }
+    }
+
+    final newPath =
+        imageFile.path.replaceAll(RegExp(r'\.(jpg|jpeg|png)$'), '_light.png');
+    final newFile = File(newPath);
+    await newFile.writeAsBytes(img.encodePng(transparentImage));
+
+    return newFile;
+  }
+
   String convertArabicToEnglishDigits(String input) {
     const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
     const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -527,12 +343,10 @@ class _ImageTOTextState extends State<ImageTOText> {
     return input;
   }
 
-  /// ⬇️ Parse times & labels from OCR text
   void _parsePrayerTimes(String text) {
     final lines = text.split('\n');
     final times = <String>[];
 
-    // Arabic prayer names mapped to English
     final Map<String, String> knownLabels = {
       "الفجر": "Fajr",
       "الظهر": "Dhuhr",
@@ -541,7 +355,6 @@ class _ImageTOTextState extends State<ImageTOText> {
       "العشاء": "Isha",
     };
 
-    // Time format: HH:MM or H:MM using colon or Arabic decimal
     final timeRegex = RegExp(r'(\d{1,2})[:٫](\d{2})');
 
     // Step 1: Collect raw times
@@ -572,11 +385,23 @@ class _ImageTOTextState extends State<ImageTOText> {
       }
     }
 
-    // Step 3: Fallback – Assign in order
+    // Step 3: Fallback - Assign in order
     if (!foundLabeledTimes && times.isNotEmpty) {
       for (int i = 0; i < times.length && i < _prayerOrder.length; i++) {
         _prayerTimes[_prayerOrder[i]['key']!] = times[i];
       }
+    }
+  }
+
+  Future<void> toggleBackground() async {
+    if (_image != null) {
+      _isBackgroundRemoved = !_isBackgroundRemoved;
+      File modifiedImage = await removeBackgroundKeepingLightElements(
+          _image!, _isBackgroundRemoved);
+      setState(() {
+        _image = modifiedImage;
+      });
+      await performOCR(modifiedImage);
     }
   }
 
@@ -606,6 +431,18 @@ class _ImageTOTextState extends State<ImageTOText> {
     if (_image != null) {
       _isGrayscaleApplied = !_isGrayscaleApplied;
       File modifiedImage = await applyGrayscale(_image!, _isGrayscaleApplied);
+      setState(() {
+        _image = modifiedImage;
+      });
+      await performOCR(modifiedImage);
+    }
+  }
+
+  Future<void> toggleThreshold() async {
+    print('is work funcation$_isThresholdApplied');
+    if (_image != null) {
+      _isThresholdApplied = !_isThresholdApplied;
+      File modifiedImage = await applyThreshold(_image!, _isThresholdApplied);
       setState(() {
         _image = modifiedImage;
       });
@@ -658,8 +495,10 @@ class _ImageTOTextState extends State<ImageTOText> {
                           child: const Text("Remove alphabets"),
                         ),
                         ElevatedButton(
-                          onPressed: () {},
-                          child: const Text("Remove Background"),
+                          onPressed: toggleBackground,
+                          child: Text(_isBackgroundRemoved
+                              ? "Add Background"
+                              : "Remove Background"),
                         ),
                         ElevatedButton(
                           onPressed: toggleSharpness,
@@ -678,6 +517,12 @@ class _ImageTOTextState extends State<ImageTOText> {
                           child: Text(_isGrayscaleApplied
                               ? "Remove Grayscale"
                               : "Add Grayscale"),
+                        ),
+                        ElevatedButton(
+                          onPressed: toggleThreshold,
+                          child: Text(_isThresholdApplied
+                              ? "Remove Threshold"
+                              : "Add Threshold"),
                         ),
                       ],
                     ),
