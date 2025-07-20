@@ -5,28 +5,18 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:image/image.dart' as img;
 import 'dart:io';
 
-class ImageTOText extends StatefulWidget {
-  const ImageTOText({Key? key}) : super(key: key);
+class ImageToText extends StatefulWidget {
+  const ImageToText({Key? key}) : super(key: key);
 
   @override
-  State<ImageTOText> createState() => _ImageTOTextState();
+  State<ImageToText> createState() => _ImageToTextState();
 }
 
-class _ImageTOTextState extends State<ImageTOText> {
+class _ImageToTextState extends State<ImageToText> {
   File? _image;
   String _text = "";
   final Map<String, String> _prayerTimes = {};
 
-  // Display order
-  final List<Map<String, String>> _prayerOrder = [
-    {'key': 'Fajr', 'name': 'Fajr'},
-    {'key': 'Dhuhr', 'name': 'Dhuhr'},
-    {'key': 'Asr', 'name': 'Asr'},
-    {'key': 'Maghrib', 'name': 'Maghrib'},
-    {'key': 'Isha', 'name': 'Isha'},
-  ];
-
-  /// ⬇️ Show camera/gallery selector
   Future<void> _showImageSourceDialog() async {
     showModalBottomSheet(
       context: context,
@@ -55,31 +45,143 @@ class _ImageTOTextState extends State<ImageTOText> {
     );
   }
 
-  /// ⬇️ Pick image & perform full OCR + parsing
   Future<void> pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source);
 
     if (pickedFile != null) {
-      // Step 1: Convert to grayscale
+      // Convert to grayscale
       File grayImage = await convertToGrayscale(File(pickedFile.path));
 
-      // Step 2: OCR using ML Kit
-      final inputImage = InputImage.fromFilePath(grayImage.path);
-      final textRecognizer =
-          TextRecognizer(script: TextRecognitionScript.latin);
-      final RecognizedText recognizedText =
-          await textRecognizer.processImage(inputImage);
+      // Show image in dialog immediately
+      await showDialog(
+        context: context,
+        builder: (context) {
+          final PageController pageController = PageController();
+          int currentPage = 0;
+          String extractedText = "";
 
-      setState(() {
-        _image = grayImage;
-        _text = recognizedText.text;
-        _prayerTimes.clear();
-        _parsePrayerTimes(_text);
-      });
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: const Text("Captured Image"),
+                content: SizedBox(
+                  height: 400,
+                  width: 300,
+                  child: PageView(
+                    controller: pageController,
+                    onPageChanged: (index) {
+                      setState(() => currentPage = index);
+                    },
+                    children: [
+                      // Page 1: Show image
+                      Column(
+                        children: [
+                          const Text("Step 1: Image Preview"),
+                          const SizedBox(height: 10),
+                          Expanded(child: Image.file(grayImage)),
+                          Row(
+                            children: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  pickImage(ImageSource.gallery); // or camera
+                                },
+                                child: const Text("Change Image"),
+                              ),
+                              SizedBox(
+                                width: 15,
+                              ),
+                              ElevatedButton(
+                                onPressed: () async {
+                                  // Process image and move to next page
+                                  final inputImage =
+                                      InputImage.fromFilePath(grayImage.path);
+                                  final textRecognizer = TextRecognizer(
+                                      script: TextRecognitionScript.latin);
+                                  final RecognizedText recognizedText =
+                                      await textRecognizer
+                                          .processImage(inputImage);
+                                  extractedText = recognizedText.text;
+                                  textRecognizer.close();
 
-      textRecognizer.close();
+                                  setState(() => currentPage = 2);
+                                  pageController.animateToPage(2,
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      curve: Curves.easeInOut);
+                                },
+                                child: const Text("Process"),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+
+                      // Page 3: Show extracted text
+                      SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Step 3: Extracted Prayer Times"),
+                            const SizedBox(height: 10),
+                            Text(extractedText),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Dots below
+                actions: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(2, (index) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color:
+                              currentPage == index ? Colors.blue : Colors.grey,
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              );
+            },
+          );
+        },
+      );
     }
+  }
+
+  final List<Map<String, String>> _prayerOrder = [
+    {'key': 'Fajr', 'name': 'Fajr'},
+    {'key': 'Dhuhr', 'name': 'Dhuhr'},
+    {'key': 'Asr', 'name': 'Asr'},
+    {'key': 'Maghrib', 'name': 'Maghrib'},
+    {'key': 'Isha', 'name': 'Isha'},
+  ];
+  Future<void> _processImage(File image) async {
+    // OCR using ML Kit
+    final inputImage = InputImage.fromFilePath(image.path);
+    final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    final RecognizedText recognizedText =
+        await textRecognizer.processImage(inputImage);
+
+    setState(() {
+      _image = image;
+      _text = recognizedText.text;
+      _prayerTimes.clear();
+      _parsePrayerTimes(_text);
+    });
+
+    textRecognizer.close();
   }
 
   Future<void> setPrayerAlarms() async {
@@ -142,7 +244,6 @@ class _ImageTOTextState extends State<ImageTOText> {
     return newFile;
   }
 
-  /// ⬇️ Convert Arabic digits to English
   String convertArabicToEnglishDigits(String input) {
     const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
     const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -152,7 +253,6 @@ class _ImageTOTextState extends State<ImageTOText> {
     return input;
   }
 
-  /// ⬇️ Parse times & labels from OCR text
   void _parsePrayerTimes(String text) {
     final lines = text.split('\n');
     final times = <String>[];
@@ -200,7 +300,6 @@ class _ImageTOTextState extends State<ImageTOText> {
     }
   }
 
-  /// ⬇️ Show editable prayer time dialog
   void showEditPrayerTimesDialog() {
     final Map<String, TextEditingController> controllers = {
       for (var prayer in _prayerOrder)
@@ -244,6 +343,12 @@ class _ImageTOTextState extends State<ImageTOText> {
                 }
               });
               Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Prayer times saved successfully!"),
+                  duration: Duration(seconds: 2),
+                ),
+              );
             },
             child: const Text("Save"),
           ),
@@ -266,11 +371,6 @@ class _ImageTOTextState extends State<ImageTOText> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_image != null)
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Image.file(_image!),
-              ),
             Center(
               child: ElevatedButton(
                 onPressed: _showImageSourceDialog,
@@ -283,17 +383,6 @@ class _ImageTOTextState extends State<ImageTOText> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
-                        });
-                      },
-                      child: const Text("Remove alphabets"),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
                   if (_text.isNotEmpty) ...[
                     GestureDetector(
                       onTap: showEditPrayerTimesDialog,
@@ -350,13 +439,13 @@ class _ImageTOTextState extends State<ImageTOText> {
                             : const SizedBox.shrink();
                       }).toList(),
                     ),
+                    ElevatedButton(
+                      onPressed: () {
+                        setPrayerAlarms();
+                      },
+                      child: const Text("Set Alarm"),
+                    ),
                   ],
-                  ElevatedButton(
-                    onPressed: () {
-                      setPrayerAlarms();
-                    },
-                    child: const Text("Set Alarm"),
-                  ),
                 ],
               ),
             ),
