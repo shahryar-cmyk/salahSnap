@@ -351,7 +351,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                                 topRight: Radius.circular(20.0),
                                               ),
                                               child: Image.asset(
-                                                'assets/images/onboarding_image2.jpg',
+                                                'assets/images/page_silder.jpg',
                                                 height: 250.0,
                                                 fit: BoxFit.contain,
                                               ),
