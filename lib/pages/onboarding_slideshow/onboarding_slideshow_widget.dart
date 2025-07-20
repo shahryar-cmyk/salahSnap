@@ -60,7 +60,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
           ),
         ],
       ),
-      'imageOnPageLoadAnimation': AnimationInfo(
+      'imageOnPageLoadAnimation1': AnimationInfo(
         trigger: AnimationTrigger.onPageLoad,
         effectsBuilder: () => [
           ScaleEffect(
@@ -80,6 +80,64 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
         ],
       ),
       'textOnPageLoadAnimation2': AnimationInfo(
+        trigger: AnimationTrigger.onPageLoad,
+        effectsBuilder: () => [
+          VisibilityEffect(duration: 1.ms),
+          ScaleEffect(
+            curve: Curves.easeInOut,
+            delay: 0.0.ms,
+            duration: 600.0.ms,
+            begin: Offset(0.9, 0.9),
+            end: Offset(1.0, 1.0),
+          ),
+          FadeEffect(
+            curve: Curves.easeInOut,
+            delay: 0.0.ms,
+            duration: 600.0.ms,
+            begin: 0.0,
+            end: 1.0,
+          ),
+        ],
+      ),
+      'textOnPageLoadAnimation3': AnimationInfo(
+        trigger: AnimationTrigger.onPageLoad,
+        effectsBuilder: () => [
+          ScaleEffect(
+            curve: Curves.easeInOut,
+            delay: 0.0.ms,
+            duration: 600.0.ms,
+            begin: Offset(0.9, 0.9),
+            end: Offset(1.0, 1.0),
+          ),
+          FadeEffect(
+            curve: Curves.easeInOut,
+            delay: 0.0.ms,
+            duration: 600.0.ms,
+            begin: 0.0,
+            end: 1.0,
+          ),
+        ],
+      ),
+      'imageOnPageLoadAnimation2': AnimationInfo(
+        trigger: AnimationTrigger.onPageLoad,
+        effectsBuilder: () => [
+          ScaleEffect(
+            curve: Curves.easeInOut,
+            delay: 0.0.ms,
+            duration: 600.0.ms,
+            begin: Offset(0.9, 0.9),
+            end: Offset(1.0, 1.0),
+          ),
+          FadeEffect(
+            curve: Curves.easeInOut,
+            delay: 0.0.ms,
+            duration: 600.0.ms,
+            begin: 0.0,
+            end: 1.0,
+          ),
+        ],
+      ),
+      'textOnPageLoadAnimation4': AnimationInfo(
         trigger: AnimationTrigger.onPageLoad,
         effectsBuilder: () => [
           VisibilityEffect(duration: 1.ms),
@@ -160,6 +218,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                         PageController(initialPage: 0),
                                     scrollDirection: Axis.horizontal,
                                     children: [
+                                      // First Page
                                       Column(
                                         mainAxisSize: MainAxisSize.max,
                                         mainAxisAlignment:
@@ -189,16 +248,6 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                                                   .fontStyle,
                                                         ),
                                                         letterSpacing: 0.0,
-                                                        fontWeight:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .displaySmall
-                                                                .fontWeight,
-                                                        fontStyle:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .displaySmall
-                                                                .fontStyle,
                                                       ),
                                             ).animateOnPageLoad(animationsMap[
                                                 'textOnPageLoadAnimation1']!),
@@ -222,7 +271,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                                 fit: BoxFit.contain,
                                               ),
                                             ).animateOnPageLoad(animationsMap[
-                                                'imageOnPageLoadAnimation']!),
+                                                'imageOnPageLoadAnimation1']!),
                                           ),
                                           Padding(
                                             padding:
@@ -248,19 +297,94 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                                                   .fontStyle,
                                                         ),
                                                         letterSpacing: 0.0,
-                                                        fontWeight:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .labelLarge
-                                                                .fontWeight,
-                                                        fontStyle:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .labelLarge
-                                                                .fontStyle,
                                                       ),
                                             ).animateOnPageLoad(animationsMap[
                                                 'textOnPageLoadAnimation2']!),
+                                          ),
+                                        ],
+                                      ),
+                                      // Second Page
+                                      Column(
+                                        mainAxisSize: MainAxisSize.max,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Padding(
+                                            padding:
+                                                EdgeInsetsDirectional.fromSTEB(
+                                                    0.0, 0.0, 0.0, 32.0),
+                                            child: Text(
+                                              "Snap & set your own alarm time!!",
+                                              textAlign: TextAlign.center,
+                                              style:
+                                                  FlutterFlowTheme.of(context)
+                                                      .displaySmall
+                                                      .override(
+                                                        font: GoogleFonts.inter(
+                                                          fontWeight:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .displaySmall
+                                                                  .fontWeight,
+                                                          fontStyle:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .displaySmall
+                                                                  .fontStyle,
+                                                        ),
+                                                        letterSpacing: 0.0,
+                                                      ),
+                                            ).animateOnPageLoad(animationsMap[
+                                                'textOnPageLoadAnimation3']!),
+                                          ),
+                                          Padding(
+                                            padding:
+                                                EdgeInsetsDirectional.fromSTEB(
+                                                    24.0, 0.0, 24.0, 0.0),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.only(
+                                                bottomLeft:
+                                                    Radius.circular(20.0),
+                                                bottomRight:
+                                                    Radius.circular(20.0),
+                                                topLeft: Radius.circular(20.0),
+                                                topRight: Radius.circular(20.0),
+                                              ),
+                                              child: Image.asset(
+                                                'assets/images/onboarding_image2.jpg',
+                                                height: 250.0,
+                                                fit: BoxFit.contain,
+                                              ),
+                                            ).animateOnPageLoad(animationsMap[
+                                                'imageOnPageLoadAnimation2']!),
+                                          ),
+                                          Padding(
+                                            padding:
+                                                EdgeInsetsDirectional.fromSTEB(
+                                                    0.0, 48.0, 0.0, 0.0),
+                                            child: Text(
+                                              'Manage all your alarms in one place',
+                                              textAlign: TextAlign.center,
+                                              style:
+                                                  FlutterFlowTheme.of(context)
+                                                      .labelLarge
+                                                      .override(
+                                                        font: GoogleFonts.inter(
+                                                          fontWeight:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .labelLarge
+                                                                  .fontWeight,
+                                                          fontStyle:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .labelLarge
+                                                                  .fontStyle,
+                                                        ),
+                                                        letterSpacing: 0.0,
+                                                      ),
+                                            ).animateOnPageLoad(animationsMap[
+                                                'textOnPageLoadAnimation4']!),
                                           ),
                                         ],
                                       ),
@@ -276,7 +400,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                         .SmoothPageIndicator(
                                       controller: _model.pageViewController ??=
                                           PageController(initialPage: 0),
-                                      count: 1,
+                                      count: 2,
                                       axisDirection: Axis.horizontal,
                                       onDotClicked: (i) async {
                                         await _model.pageViewController!
@@ -346,12 +470,6 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                     ),
                                     color: Color(0xFFF7F5F5),
                                     letterSpacing: 0.0,
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .titleSmall
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .titleSmall
-                                        .fontStyle,
                                   ),
                           elevation: 0.0,
                           borderSide: BorderSide(
