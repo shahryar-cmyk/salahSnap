@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:salah_snap_version_second/pages/meals/dashboard/ImageToImage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -33,6 +34,68 @@ class DashboardWidget extends StatefulWidget {
 class _DashboardWidgetState extends State<DashboardWidget> {
   late DashboardModel _model;
   String extractedText = '';
+  Future<void> setPrayerAlarms() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> alarms = [];
+
+    for (var entry in _prayerTimes.entries) {
+      final timeParts = entry.value.split(":");
+      if (timeParts.length == 2) {
+        int hour = int.tryParse(timeParts[0]) ?? 0;
+        final int minute = int.tryParse(timeParts[1]) ?? 0;
+        bool isAm = false;
+        String period = 'AM';
+
+        if (entry.key == 'Fajr') {
+          isAm = true;
+          period = 'AM';
+          if (hour == 0) hour = 12;
+        } else {
+          period = 'PM';
+          if (hour < 12) hour += 12;
+          if (hour == 24) hour = 12;
+        }
+
+        final alarmIntent = AndroidIntent(
+          action: 'android.intent.action.SET_ALARM',
+          arguments: <String, dynamic>{
+            'android.intent.extra.alarm.HOUR': hour,
+            'android.intent.extra.alarm.MINUTES': minute,
+            'android.intent.extra.alarm.MESSAGE':
+                '${entry.key} Prayer ($period)',
+            'android.intent.extra.alarm.SKIP_UI': true,
+          },
+        );
+
+        await alarmIntent.launch();
+
+        final formattedTime =
+            '${entry.key}: ${hour > 12 ? hour - 12 : hour}:${minute.toString().padLeft(2, '0')} $period';
+
+        alarms.add(formattedTime);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$formattedTime alarm set'),
+              duration: const Duration(seconds: 1),
+              backgroundColor: Colors.blue,
+            ),
+          );
+        }
+
+        await Future.delayed(const Duration(seconds: 2));
+      }
+    }
+
+    // ✅ Save to shared preferences
+    await prefs.setStringList('set_alarms', alarms);
+
+    // ✅ Update UI
+    setState(() {
+      _setAlarms = alarms;
+    });
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
@@ -162,15 +225,23 @@ class _DashboardWidgetState extends State<DashboardWidget> {
           return StatefulBuilder(
             builder: (context, setState) {
               return AlertDialog(
-                // ✅ Dynamic title with button on page 2
                 title: currentPage == 1
                     ? Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text("Set Alarm"),
                           ElevatedButton(
-                            onPressed: () {
-                              setPrayerAlarms();
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  FlutterFlowTheme.of(context).primary,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () async {
+                              await setPrayerAlarms();
+                              if (context.mounted) {
+                                Navigator.of(context)
+                                    .pop(); // ✅ Close popup after alarms
+                              }
                             },
                             child: const Text("Set Alarms"),
                           ),
@@ -298,63 +369,6 @@ class _DashboardWidgetState extends State<DashboardWidget> {
   }
 
   List<String> _setAlarms = [];
-
-  Future<void> setPrayerAlarms() async {
-    _setAlarms.clear(); // clear previous alarms
-
-    for (var entry in _prayerTimes.entries) {
-      final timeParts = entry.value.split(":");
-      if (timeParts.length == 2) {
-        int hour = int.tryParse(timeParts[0]) ?? 0;
-        final int minute = int.tryParse(timeParts[1]) ?? 0;
-        bool isAm = false;
-        String period = 'AM';
-
-        if (entry.key == 'Fajr') {
-          isAm = true;
-          period = 'AM';
-          if (hour == 0) hour = 12;
-        } else {
-          period = 'PM';
-          if (hour < 12) hour += 12;
-          if (hour == 24) hour = 12;
-        }
-
-        final alarmIntent = AndroidIntent(
-          action: 'android.intent.action.SET_ALARM',
-          arguments: <String, dynamic>{
-            'android.intent.extra.alarm.HOUR': hour,
-            'android.intent.extra.alarm.MINUTES': minute,
-            'android.intent.extra.alarm.MESSAGE':
-                '${entry.key} Prayer ($period)',
-            'android.intent.extra.alarm.SKIP_UI': true,
-          },
-        );
-
-        await alarmIntent.launch();
-
-        final displayHour = hour > 12 ? hour - 12 : hour;
-        final alarmText =
-            '${entry.key} alarm set for ${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
-
-        _setAlarms.add(alarmText);
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(alarmText),
-              duration: const Duration(seconds: 1),
-              backgroundColor: Colors.blue,
-            ),
-          );
-        }
-
-        await Future.delayed(const Duration(seconds: 2));
-      }
-    }
-
-    setState(() {}); // to refresh screen after setting alarms
-  }
 
   Future<File> convertToGrayscale(File imageFile) async {
     final bytes = await imageFile.readAsBytes();
@@ -598,6 +612,16 @@ class _DashboardWidgetState extends State<DashboardWidget> {
     _model = createModel(context, () => DashboardModel());
 
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
+    _loadSetAlarms();
+  }
+
+  Future<void> _loadSetAlarms() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedAlarms = prefs.getStringList('set_alarms') ?? [];
+
+    setState(() {
+      _setAlarms = savedAlarms;
+    });
   }
 
   @override
@@ -617,41 +641,42 @@ class _DashboardWidgetState extends State<DashboardWidget> {
       child: Scaffold(
         key: scaffoldKey,
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        floatingActionButton: Align(
-          alignment: AlignmentDirectional(1.0, 1.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              FloatingActionButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => ImageToText()));
-                },
-                backgroundColor: FlutterFlowTheme.of(context).primary,
-                elevation: 8.0,
-                child: Icon(
-                  Icons.alarm,
-                  color: FlutterFlowTheme.of(context).info,
-                  size: 24.0,
-                ),
-              ),
-              SizedBox(
-                width: 20,
-              ),
-              FloatingActionButton(
-                onPressed: _showImageSourceDialog,
-                backgroundColor: FlutterFlowTheme.of(context).primary,
-                elevation: 8.0,
-                child: Icon(
-                  Icons.camera_alt,
-                  color: FlutterFlowTheme.of(context).info,
-                  size: 24.0,
-                ),
-              ),
-            ],
-          ),
-        ),
+        // floatingActionButton: Align(
+        //   alignment: AlignmentDirectional(1.0, 1.0),
+        //   child: Row(
+        //     crossAxisAlignment: CrossAxisAlignment.end,
+        //     mainAxisAlignment: MainAxisAlignment.end,
+        //     children: [
+        //       FloatingActionButton(
+        //         onPressed: () {
+        //           Navigator.of(context).push(
+        //               MaterialPageRoute(builder: (context) => ImageToText()));
+        //         },
+        //         backgroundColor: FlutterFlowTheme.of(context).primary,
+        //         elevation: 8.0,
+        //         child: Icon(
+        //           Icons.alarm,
+        //           color: FlutterFlowTheme.of(context).info,
+        //           size: 24.0,
+        //         ),
+        //       ),
+        //       SizedBox(
+        //         width: 20,
+        //       ),
+        //       FloatingActionButton(
+        //         onPressed: _showImageSourceDialog,
+        //         backgroundColor: FlutterFlowTheme.of(context).primary,
+        //         elevation: 8.0,
+        //         child: Icon(
+        //           Icons.camera_alt,
+        //           color: FlutterFlowTheme.of(context).info,
+        //           size: 24.0,
+        //         ),
+        //       ),
+        //     ],
+        //   ),
+        // ),
+
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).primary,
           automaticallyImplyLeading: false,
@@ -715,13 +740,6 @@ class _DashboardWidgetState extends State<DashboardWidget> {
 
               // 🔹 Show alarm list if alarms exist
               if (_setAlarms.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Text(
-                    "Alarms Set Successfully:",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
                 const SizedBox(height: 10),
                 Expanded(
                   child: ListView.builder(
