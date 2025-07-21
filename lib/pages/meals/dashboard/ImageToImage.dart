@@ -16,6 +16,165 @@ class _ImageToTextState extends State<ImageToText> {
   File? _image;
   String _text = "";
   final Map<String, String> _prayerTimes = {};
+  void showPrayerTimesPopup() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Prayer Times"),
+        content: _prayerTimes.isEmpty
+            ? const Text("No prayer times available.")
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: _prayerOrder.map((prayer) {
+                  final time = _prayerTimes[prayer['key']];
+                  return time != null
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6.0),
+                          child: Row(
+                            children: [
+                              Text(
+                                "${prayer['name']}: ",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                time,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink();
+                }).toList(),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Close"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void showImagePreviewWithText(File image, String text) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Image & OCR Result"),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_image != null)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Image.file(_image!),
+                ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _text = _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
+                          });
+                        },
+                        child: const Text("Remove alphabets"),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    if (_text.isNotEmpty) ...[
+                      GestureDetector(
+                        onTap: () {
+                          showEditPrayerTimesDialog(() {
+                            setState(
+                                () {}); // Refresh prayer time values in dialog
+                          });
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Raw Extracted Text (Tap to edit times):",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(_text),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (_prayerTimes.isNotEmpty) ...[
+                      const Text(
+                        "Prayer Times:",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Column(
+                        children: _prayerOrder.map((prayer) {
+                          final time = _prayerTimes[prayer['key']];
+                          return time != null
+                              ? Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 6.0),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        "${prayer['name']}: ",
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        time,
+                                        style: const TextStyle(fontSize: 18),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : const SizedBox.shrink();
+                        }).toList(),
+                      ),
+                    ],
+                    ElevatedButton(
+                      onPressed: () {
+                        setPrayerAlarms();
+                      },
+                      child: const Text("Set Alarm"),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Close"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ⬇️ Show editable prayer time dialog
 
   Future<void> _showImageSourceDialog() async {
     showModalBottomSheet(
@@ -84,8 +243,7 @@ class _ImageToTextState extends State<ImageToText> {
                             children: [
                               ElevatedButton(
                                 onPressed: () {
-                                  Navigator.of(context).pop();
-                                  pickImage(ImageSource.gallery); // or camera
+                                  showPrayerTimesPopup();
                                 },
                                 child: const Text("Change Image"),
                               ),
@@ -94,7 +252,6 @@ class _ImageToTextState extends State<ImageToText> {
                               ),
                               ElevatedButton(
                                 onPressed: () async {
-                                  // Process image and move to next page
                                   final inputImage =
                                       InputImage.fromFilePath(grayImage.path);
                                   final textRecognizer = TextRecognizer(
@@ -102,14 +259,20 @@ class _ImageToTextState extends State<ImageToText> {
                                   final RecognizedText recognizedText =
                                       await textRecognizer
                                           .processImage(inputImage);
+
                                   extractedText = recognizedText.text;
                                   textRecognizer.close();
 
-                                  setState(() => currentPage = 2);
-                                  pageController.animateToPage(2,
-                                      duration:
-                                          const Duration(milliseconds: 300),
-                                      curve: Curves.easeInOut);
+                                  // Update the main _text and prayerTimes
+                                  _parsePrayerTimes(extractedText);
+                                  setState(() {
+                                    _text = extractedText;
+                                  });
+
+                                  // Show the dialog like in your main UI
+                                  // showEditPrayerTimesDialog(() {
+                                  //   setState(() {});
+                                  // });
                                 },
                                 child: const Text("Process"),
                               ),
@@ -121,13 +284,78 @@ class _ImageToTextState extends State<ImageToText> {
                       // Page 3: Show extracted text
                       SingleChildScrollView(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text("Step 3: Extracted Prayer Times"),
-                            const SizedBox(height: 10),
-                            Text(extractedText),
-                          ],
+                          children: _prayerOrder.map((prayer) {
+                            final key = prayer['key']!;
+                            final name = prayer['name']!;
+                            final controller = TextEditingController(
+                                text: _prayerTimes[key] ?? '');
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  SizedBox(width: 80, child: Text(name)),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: controller,
+                                      decoration: const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        hintText: "HH:mm",
+                                      ),
+                                      onChanged: (value) {
+                                        _prayerTimes[key] = value;
+                                        // onUpdate(); // <-- notify parent
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
                         ),
+                      ),
+
+                      // Page 3: Editable Prayer Time List
+                      ListView(
+                        children: [
+                          const Text("Step 3: Confirm/Edit Prayer Times"),
+                          const SizedBox(height: 10),
+                          ..._prayerOrder.map((prayer) {
+                            final key = prayer['key']!;
+                            final name = prayer['name']!;
+                            final controller = TextEditingController(
+                                text: prayerTimes[key] ?? '');
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Row(
+                                children: [
+                                  SizedBox(width: 80, child: Text(name)),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: controller,
+                                      decoration: const InputDecoration(
+                                        hintText: "Enter time (e.g. 04:30)",
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      onChanged: (value) {
+                                        prayerTimes[key] = value;
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: () {
+                              print("Final prayer times: $prayerTimes");
+                              Navigator.of(context).pop(); // or proceed
+                            },
+                            child: const Text("Done"),
+                          )
+                        ],
                       ),
                     ],
                   ),
@@ -137,7 +365,7 @@ class _ImageToTextState extends State<ImageToText> {
                 actions: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(2, (index) {
+                    children: List.generate(3, (index) {
                       return Container(
                         margin: const EdgeInsets.symmetric(horizontal: 4),
                         width: 10,
@@ -159,6 +387,14 @@ class _ImageToTextState extends State<ImageToText> {
       );
     }
   }
+
+  final Map<String, String?> prayerTimes = {
+    "Fajr": null,
+    "Dhuhr": null,
+    "Asr": null,
+    "Maghrib": null,
+    "Isha": null,
+  };
 
   final List<Map<String, String>> _prayerOrder = [
     {'key': 'Fajr', 'name': 'Fajr'},
@@ -300,65 +536,80 @@ class _ImageToTextState extends State<ImageToText> {
     }
   }
 
-  void showEditPrayerTimesDialog() {
-    final Map<String, TextEditingController> controllers = {
-      for (var prayer in _prayerOrder)
-        prayer['key']!: TextEditingController(
-          text: _prayerTimes[prayer['key']!] ?? '',
-        ),
-    };
-
+  void showEditPrayerTimesDialog(VoidCallback onUpdate) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Edit Prayer Times"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _prayerOrder.map((prayer) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: TextField(
-                  controller: controllers[prayer['key']!],
-                  decoration: InputDecoration(
-                    labelText: prayer['name'],
-                    border: const OutlineInputBorder(),
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Edit Prayer Times"),
+          content: SingleChildScrollView(
+            child: Column(
+              children: _prayerOrder.map((prayer) {
+                final key = prayer['key']!;
+                final name = prayer['name']!;
+                final controller =
+                    TextEditingController(text: _prayerTimes[key] ?? '');
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      SizedBox(width: 80, child: Text(name)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                          controller: controller,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: "HH:mm",
+                          ),
+                          onChanged: (value) {
+                            _prayerTimes[key] = value;
+                            onUpdate(); // <-- notify parent
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                for (var prayer in _prayerOrder) {
-                  _prayerTimes[prayer['key']!] =
-                      controllers[prayer['key']!]!.text.trim();
-                }
-              });
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Prayer times saved successfully!"),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            child: const Text("Save"),
-          ),
-        ],
-      ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Done"),
+            )
+          ],
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    var gestureDetector = GestureDetector(
+      onTap: () {
+        showEditPrayerTimesDialog(() {
+          setState(() {}); // Refresh prayer time values in dialog
+        });
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Raw Extracted Text (Tap to edit times):",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(_text),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
     return Scaffold(
       appBar: AppBar(
         title: const Text("Prayer Time Extractor"),
@@ -378,77 +629,59 @@ class _ImageToTextState extends State<ImageToText> {
               ),
             ),
             const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_text.isNotEmpty) ...[
-                    GestureDetector(
-                      onTap: showEditPrayerTimesDialog,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Raw Extracted Text (Tap to edit times):",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(_text),
-                          const SizedBox(height: 20),
-                        ],
-                      ),
-                    ),
-                  ],
-                  if (_prayerTimes.isNotEmpty) ...[
-                    const Text(
-                      "Prayer Times:",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Column(
-                      children: _prayerOrder.map((prayer) {
-                        final time = _prayerTimes[prayer['key']];
-                        return time != null
-                            ? Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 6.0),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      "${prayer['name']}: ",
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      time,
-                                      style: const TextStyle(fontSize: 18),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : const SizedBox.shrink();
-                      }).toList(),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        setPrayerAlarms();
-                      },
-                      child: const Text("Set Alarm"),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+            // Padding(
+            //   padding: const EdgeInsets.all(16.0),
+            //   child: Column(
+            //     crossAxisAlignment: CrossAxisAlignment.start,
+            //     children: [
+            //       if (_text.isNotEmpty) ...[
+            //         gestureDetector,
+            //       ],
+            //       if (_prayerTimes.isNotEmpty) ...[
+            //         const Text(
+            //           "Prayer Times:",
+            //           style: TextStyle(
+            //             fontWeight: FontWeight.bold,
+            //             fontSize: 20,
+            //           ),
+            //         ),
+            //         const SizedBox(height: 10),
+            //         Column(
+            //           children: _prayerOrder.map((prayer) {
+            //             final time = _prayerTimes[prayer['key']];
+            //             return time != null
+            //                 ? Padding(
+            //                     padding:
+            //                         const EdgeInsets.symmetric(vertical: 6.0),
+            //                     child: Row(
+            //                       children: [
+            //                         Text(
+            //                           "${prayer['name']}: ",
+            //                           style: const TextStyle(
+            //                             fontSize: 18,
+            //                             fontWeight: FontWeight.bold,
+            //                           ),
+            //                         ),
+            //                         Text(
+            //                           time,
+            //                           style: const TextStyle(fontSize: 18),
+            //                         ),
+            //                       ],
+            //                     ),
+            //                   )
+            //                 : const SizedBox.shrink();
+            //           }).toList(),
+            //         ),
+            //         ElevatedButton(
+            //           onPressed: () {
+            //             setPrayerAlarms();
+            //           },
+            //           child: const Text("Set Alarm"),
+            //         ),
+            //       ],
+            //     ],
+            //   ),
+            // ),
           ],
         ),
       ),

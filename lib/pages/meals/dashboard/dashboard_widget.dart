@@ -62,6 +62,56 @@ class _DashboardWidgetState extends State<DashboardWidget> {
     {'key': 'Maghrib', 'name': 'Maghrib'},
     {'key': 'Isha', 'name': 'Isha'},
   ];
+  void showPrayerTimesPopup() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Prayer Times"),
+        content: _prayerTimes.isEmpty
+            ? const Text("No prayer times available.")
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: _prayerOrder.map((prayer) {
+                  final time = _prayerTimes[prayer['key']];
+                  return time != null
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6.0),
+                          child: Row(
+                            children: [
+                              Text(
+                                "${prayer['name']}: ",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                time,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink();
+                }).toList(),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Close"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  final Map<String, String?> prayerTimes = {
+    "Fajr": null,
+    "Dhuhr": null,
+    "Asr": null,
+    "Maghrib": null,
+    "Isha": null,
+  };
 
   /// ⬇️ Show camera/gallery selector
   Future<void> _showImageSourceDialog() async {
@@ -98,35 +148,168 @@ class _DashboardWidgetState extends State<DashboardWidget> {
     final pickedFile = await picker.pickImage(source: source);
 
     if (pickedFile != null) {
-      // Step 1: Convert to grayscale
+      // Convert to grayscale
       File grayImage = await convertToGrayscale(File(pickedFile.path));
 
-      // Step 2: OCR using ML Kit
-      final inputImage = InputImage.fromFilePath(grayImage.path);
-      final textRecognizer =
-          TextRecognizer(script: TextRecognitionScript.latin);
-      final RecognizedText recognizedText =
-          await textRecognizer.processImage(inputImage);
+      // Show image in dialog immediately
+      await showDialog(
+        context: context,
+        builder: (context) {
+          final PageController pageController = PageController();
+          int currentPage = 0;
+          String extractedText = "";
 
-      setState(() {
-        _image = grayImage;
-        _text = recognizedText.text;
-        _prayerTimes.clear();
-        _parsePrayerTimes(_text);
-      });
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                // ✅ Dynamic title with button on page 2
+                title: currentPage == 1
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Set Alarm"),
+                          ElevatedButton(
+                            onPressed: () {
+                              setPrayerAlarms();
+                            },
+                            child: const Text("Set Alarms"),
+                          ),
+                        ],
+                      )
+                    : const Text("Captured Image"),
 
-      textRecognizer.close();
+                content: SizedBox(
+                  height: 400,
+                  width: 300,
+                  child: PageView(
+                    controller: pageController,
+                    onPageChanged: (index) {
+                      setState(() => currentPage = index);
+                    },
+                    children: [
+                      // Page 1: Show image
+                      Column(
+                        children: [
+                          const Text("Step 1: Image Preview"),
+                          const SizedBox(height: 10),
+                          Expanded(child: Image.file(grayImage)),
+                          Row(
+                            children: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  showPrayerTimesPopup();
+                                },
+                                child: const Text("Change Image"),
+                              ),
+                              const SizedBox(width: 15),
+                              ElevatedButton(
+                                onPressed: () async {
+                                  final inputImage =
+                                      InputImage.fromFilePath(grayImage.path);
+                                  final textRecognizer = TextRecognizer(
+                                      script: TextRecognitionScript.latin);
+                                  final RecognizedText recognizedText =
+                                      await textRecognizer
+                                          .processImage(inputImage);
+
+                                  extractedText = recognizedText.text;
+                                  textRecognizer.close();
+
+                                  _parsePrayerTimes(extractedText);
+
+                                  setState(() {
+                                    _text = extractedText;
+                                  });
+
+                                  // ✅ Move to next page after processing
+                                  pageController.nextPage(
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                  );
+                                },
+                                child: const Text("Process"),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+
+                      // Page 2: Editable prayer times
+                      SingleChildScrollView(
+                        child: Column(
+                          children: _prayerOrder.map((prayer) {
+                            final key = prayer['key']!;
+                            final name = prayer['name']!;
+                            final controller = TextEditingController(
+                                text: _prayerTimes[key] ?? '');
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  SizedBox(width: 80, child: Text(name)),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: controller,
+                                      decoration: const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        hintText: "HH:mm",
+                                      ),
+                                      onChanged: (value) {
+                                        _prayerTimes[key] = value;
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Dots below
+                actions: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(2, (index) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color:
+                              currentPage == index ? Colors.blue : Colors.grey,
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              );
+            },
+          );
+        },
+      );
     }
   }
 
+  List<String> _setAlarms = [];
+
   Future<void> setPrayerAlarms() async {
+    _setAlarms.clear(); // clear previous alarms
+
     for (var entry in _prayerTimes.entries) {
       final timeParts = entry.value.split(":");
       if (timeParts.length == 2) {
         int hour = int.tryParse(timeParts[0]) ?? 0;
-        final minute = int.tryParse(timeParts[1]) ?? 0;
+        final int minute = int.tryParse(timeParts[1]) ?? 0;
         bool isAm = false;
         String period = 'AM';
+
         if (entry.key == 'Fajr') {
           isAm = true;
           period = 'AM';
@@ -150,19 +333,27 @@ class _DashboardWidgetState extends State<DashboardWidget> {
 
         await alarmIntent.launch();
 
+        final displayHour = hour > 12 ? hour - 12 : hour;
+        final alarmText =
+            '${entry.key} alarm set for ${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+
+        _setAlarms.add(alarmText);
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                  '${entry.key} alarm set for ${hour > 12 ? hour - 12 : hour}:${minute.toString().padLeft(2, '0')} $period'),
+              content: Text(alarmText),
               duration: const Duration(seconds: 1),
               backgroundColor: Colors.blue,
             ),
           );
         }
+
         await Future.delayed(const Duration(seconds: 2));
       }
     }
+
+    setState(() {}); // to refresh screen after setting alarms
   }
 
   Future<File> convertToGrayscale(File imageFile) async {
@@ -502,105 +693,61 @@ class _DashboardWidgetState extends State<DashboardWidget> {
         body: SafeArea(
           top: true,
           child: Column(
-            mainAxisSize: MainAxisSize.max,
             children: [
-              SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_image != null)
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Image.file(_image!),
+              const SizedBox(height: 20),
+
+              // 🔸 Show message when no alarms are set
+              if (_setAlarms.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(
+                    child: Text(
+                      "Click a snap and set alarms",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                    const SizedBox(height: 20),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Center(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _text =
-                                      _text.replaceAll(RegExp(r'[a-zA-Z]'), '');
-                                });
-                              },
-                              child: const Text("Remove alphabets"),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          if (_text.isNotEmpty) ...[
-                            GestureDetector(
-                              onTap: showEditPrayerTimesDialog,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "Raw Extracted Text (Tap to edit times):",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(_text),
-                                  const SizedBox(height: 20),
-                                ],
-                              ),
-                            ),
-                          ],
-                          if (_prayerTimes.isNotEmpty) ...[
-                            const Text(
-                              "Prayer Times:",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Column(
-                              children: _prayerOrder.map((prayer) {
-                                final time = _prayerTimes[prayer['key']];
-                                return time != null
-                                    ? Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 6.0),
-                                        child: Row(
-                                          children: [
-                                            Text(
-                                              "${prayer['name']}: ",
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            Text(
-                                              time,
-                                              style:
-                                                  const TextStyle(fontSize: 18),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : const SizedBox.shrink();
-                              }).toList(),
-                            ),
-                          ],
-                          ElevatedButton(
-                            onPressed: () {
-                              setPrayerAlarms();
-                            },
-                            child: const Text("Set Alarm"),
-                          ),
-                        ],
-                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ],
+                  ),
                 ),
-              ),
+
+              // 🔹 Show alarm list if alarms exist
+              if (_setAlarms.isNotEmpty) ...[
+                const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Text(
+                    "Alarms Set Successfully:",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _setAlarms.length,
+                    itemBuilder: (context, index) {
+                      return SizedBox(
+                        height: 80,
+                        child: Card(
+                          color: FlutterFlowTheme.of(context).primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            leading:
+                                const Icon(Icons.alarm, color: Colors.white),
+                            title: Text(
+                              _setAlarms[index],
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ],
           ),
         ),
