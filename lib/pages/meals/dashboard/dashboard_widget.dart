@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:android_intent_plus/android_intent.dart';
@@ -239,18 +240,20 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                             onPressed: () async {
                               await setPrayerAlarms();
                               if (context.mounted) {
-                                Navigator.of(context)
-                                    .pop(); // ✅ Close popup after alarms
+                                Navigator.of(context).pop(); // ✅ Close popup
                               }
                             },
                             child: const Text("Set Alarms"),
                           ),
                         ],
                       )
-                    : const Text("Captured Image"),
+                    : Padding(
+                        padding: const EdgeInsets.all(13),
+                        child: const Text("Captured Image"),
+                      ),
 
                 content: SizedBox(
-                  height: 400,
+                  height: 400, // ✅ Fixed height
                   width: 300,
                   child: PageView(
                     controller: pageController,
@@ -258,22 +261,65 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                       setState(() => currentPage = index);
                     },
                     children: [
-                      // Page 1: Show image
+                      // Page 1: Image preview
                       Column(
                         children: [
                           const Text("Step 1: Image Preview"),
                           const SizedBox(height: 10),
-                          Expanded(child: Image.file(grayImage)),
+                          SizedBox(
+                            height: 250, // ✅ Fixed height instead of Expanded
+                            child: Image.file(grayImage),
+                          ),
+                          const SizedBox(height: 10),
                           Row(
                             children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  showPrayerTimesPopup();
-                                },
-                                child: const Text("Change Image"),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        FlutterFlowTheme.of(context).primary,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  onPressed: () async {
+                                    final picker = ImagePicker();
+                                    final pickedFile = await picker.pickImage(
+                                        source: ImageSource.gallery);
+
+                                    if (pickedFile != null) {
+                                      File newGrayImage =
+                                          await convertToGrayscale(
+                                              File(pickedFile.path));
+                                      final inputImage =
+                                          InputImage.fromFilePath(
+                                              newGrayImage.path);
+
+                                      final textRecognizer = TextRecognizer(
+                                          script: TextRecognitionScript.latin);
+                                      final RecognizedText recognizedText =
+                                          await textRecognizer
+                                              .processImage(inputImage);
+                                      textRecognizer.close();
+
+                                      String newExtractedText =
+                                          recognizedText.text;
+                                      _parsePrayerTimes(newExtractedText);
+
+                                      setState(() {
+                                        grayImage = newGrayImage;
+                                        _text = newExtractedText;
+                                      });
+                                    }
+                                  },
+                                  child: const Text("Change Image"),
+                                ),
                               ),
-                              const SizedBox(width: 15),
+                              const SizedBox(width: 10),
                               ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      FlutterFlowTheme.of(context).primary,
+                                  foregroundColor: Colors.white,
+                                ),
                                 onPressed: () async {
                                   final inputImage =
                                       InputImage.fromFilePath(grayImage.path);
@@ -292,7 +338,6 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                                     _text = extractedText;
                                   });
 
-                                  // ✅ Move to next page after processing
                                   pageController.nextPage(
                                     duration: const Duration(milliseconds: 300),
                                     curve: Curves.easeInOut,
@@ -306,35 +351,39 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                       ),
 
                       // Page 2: Editable prayer times
-                      SingleChildScrollView(
-                        child: Column(
-                          children: _prayerOrder.map((prayer) {
-                            final key = prayer['key']!;
-                            final name = prayer['name']!;
-                            final controller = TextEditingController(
-                                text: _prayerTimes[key] ?? '');
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                children: [
-                                  SizedBox(width: 80, child: Text(name)),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: controller,
-                                      decoration: const InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        hintText: "HH:mm",
+                      SizedBox(
+                        height: 400, // ✅ Same fixed height
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: _prayerOrder.map((prayer) {
+                              final key = prayer['key']!;
+                              final name = prayer['name']!;
+                              final controller = TextEditingController(
+                                  text: _prayerTimes[key] ?? '');
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                child: Row(
+                                  children: [
+                                    SizedBox(width: 80, child: Text(name)),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: controller,
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          hintText: "HH:mm",
+                                        ),
+                                        onChanged: (value) {
+                                          _prayerTimes[key] = value;
+                                        },
                                       ),
-                                      onChanged: (value) {
-                                        _prayerTimes[key] = value;
-                                      },
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
                         ),
                       ),
                     ],
@@ -352,8 +401,9 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                         height: 10,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color:
-                              currentPage == index ? Colors.blue : Colors.grey,
+                          color: currentPage == index
+                              ? const Color.fromRGBO(15, 13, 161, 1)
+                              : Colors.grey,
                         ),
                       );
                     }),
@@ -634,140 +684,292 @@ class _DashboardWidgetState extends State<DashboardWidget> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        // floatingActionButton: Align(
-        //   alignment: AlignmentDirectional(1.0, 1.0),
-        //   child: Row(
-        //     crossAxisAlignment: CrossAxisAlignment.end,
-        //     mainAxisAlignment: MainAxisAlignment.end,
-        //     children: [
-        //       FloatingActionButton(
-        //         onPressed: () {
-        //           Navigator.of(context).push(
-        //               MaterialPageRoute(builder: (context) => ImageToText()));
-        //         },
-        //         backgroundColor: FlutterFlowTheme.of(context).primary,
-        //         elevation: 8.0,
-        //         child: Icon(
-        //           Icons.alarm,
-        //           color: FlutterFlowTheme.of(context).info,
-        //           size: 24.0,
-        //         ),
-        //       ),
-        //       SizedBox(
-        //         width: 20,
-        //       ),
-        //       FloatingActionButton(
-        //         onPressed: _showImageSourceDialog,
-        //         backgroundColor: FlutterFlowTheme.of(context).primary,
-        //         elevation: 8.0,
-        //         child: Icon(
-        //           Icons.camera_alt,
-        //           color: FlutterFlowTheme.of(context).info,
-        //           size: 24.0,
-        //         ),
-        //       ),
-        //     ],
-        //   ),
-        // ),
+        onTap: () {
+          FocusScope.of(context).unfocus();
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
+        child: Scaffold(
+            key: scaffoldKey,
+            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+            // floatingActionButton: Align(
+            //   alignment: AlignmentDirectional(1.0, 1.0),
+            //   child: Row(
+            //     crossAxisAlignment: CrossAxisAlignment.end,
+            //     mainAxisAlignment: MainAxisAlignment.end,
+            //     children: [
+            //       FloatingActionButton(
+            //         onPressed: () {
+            //           Navigator.of(context).push(
+            //               MaterialPageRoute(builder: (context) => ImageToText()));
+            //         },
+            //         backgroundColor: FlutterFlowTheme.of(context).primary,
+            //         elevation: 8.0,
+            //         child: Icon(
+            //           Icons.alarm,
+            //           color: FlutterFlowTheme.of(context).info,
+            //           size: 24.0,
+            //         ),
+            //       ),
+            //       SizedBox(
+            //         width: 20,
+            //       ),
+            //       FloatingActionButton(
+            //         onPressed: _showImageSourceDialog,
+            //         backgroundColor: FlutterFlowTheme.of(context).primary,
+            //         elevation: 8.0,
+            //         child: Icon(
+            //           Icons.camera_alt,
+            //           color: FlutterFlowTheme.of(context).info,
+            //           size: 24.0,
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
 
-        appBar: AppBar(
-          backgroundColor: FlutterFlowTheme.of(context).primary,
-          automaticallyImplyLeading: false,
-          title: Align(
-            alignment: AlignmentDirectional(0.0, 0.0),
-            child: Text(
-              'Salat Snap',
-              style: FlutterFlowTheme.of(context).headlineMedium.override(
-                    font: GoogleFonts.inter(
-                      fontWeight: FlutterFlowTheme.of(context)
-                          .headlineMedium
-                          .fontWeight,
-                      fontStyle:
-                          FlutterFlowTheme.of(context).headlineMedium.fontStyle,
-                    ),
-                    color: FlutterFlowTheme.of(context).alternate,
-                    fontSize: 30.0,
-                    letterSpacing: 0.0,
-                    fontWeight:
-                        FlutterFlowTheme.of(context).headlineMedium.fontWeight,
-                    fontStyle:
-                        FlutterFlowTheme.of(context).headlineMedium.fontStyle,
-                  ),
+            appBar: AppBar(
+              backgroundColor: FlutterFlowTheme.of(context).primary,
+              automaticallyImplyLeading: false,
+              title: Align(
+                alignment: AlignmentDirectional(0.0, 0.0),
+                child: Text(
+                  'Salat Snap',
+                  style: FlutterFlowTheme.of(context).headlineMedium.override(
+                        font: GoogleFonts.inter(
+                          fontWeight: FlutterFlowTheme.of(context)
+                              .headlineMedium
+                              .fontWeight,
+                          fontStyle: FlutterFlowTheme.of(context)
+                              .headlineMedium
+                              .fontStyle,
+                        ),
+                        color: FlutterFlowTheme.of(context).alternate,
+                        fontSize: 30.0,
+                        letterSpacing: 0.0,
+                        fontWeight: FlutterFlowTheme.of(context)
+                            .headlineMedium
+                            .fontWeight,
+                        fontStyle: FlutterFlowTheme.of(context)
+                            .headlineMedium
+                            .fontStyle,
+                      ),
+                ),
+              ),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: IconButton(
+                      onPressed: () {
+                        _showImageSourceDialog();
+                      },
+                      icon: Icon(Icons.camera_alt)),
+                )
+              ],
+              centerTitle: true,
+              elevation: 2.0,
             ),
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: IconButton(
-                  onPressed: () {
-                    _showImageSourceDialog();
-                  },
-                  icon: Icon(Icons.camera_alt)),
-            )
-          ],
-          centerTitle: true,
-          elevation: 2.0,
-        ),
-        body: SafeArea(
-          top: true,
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
+            body: SafeArea(
+              top: true,
+              child: _setAlarms.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Center(
+                        child: Text(
+                          "Click a snap and set alarms",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 20),
 
-              // 🔸 Show message when no alarms are set
-              if (_setAlarms.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(20),
+                          // 🔹 Prayer Clock Design UI (like your image)
+                          PrayerClockCircle(),
+
+                          const SizedBox(height: 20),
+
+                          // 🔹 Image at top
+
+                          const SizedBox(height: 10),
+
+                          // 🔹 Alarm list
+                          ListView.builder(
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            itemCount: _setAlarms.length,
+                            itemBuilder: (context, index) {
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                    right: 15, left: 15, bottom: 10, top: 5),
+                                child: Card(
+                                  color: Color(0xFF0A1D37),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: ListTile(
+                                    leading: const Icon(Icons.alarm,
+                                        color: Colors.white),
+                                    title: Text(
+                                      _setAlarms[index],
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                    ),
+                                    onTap: () async {
+                                      final parts =
+                                          _setAlarms[index].split(':');
+                                      if (parts.length >= 2) {
+                                        final hourPart =
+                                            int.tryParse(parts[1].trim()) ?? 0;
+                                        final minuteAndPeriod =
+                                            parts[2].trim().split(' ');
+                                        final minutePart =
+                                            int.tryParse(minuteAndPeriod[0]) ??
+                                                0;
+                                        final period =
+                                            minuteAndPeriod.length > 1
+                                                ? minuteAndPeriod[1]
+                                                : 'AM';
+
+                                        int hour = hourPart;
+                                        int minute = minutePart;
+
+                                        if (period == 'PM' && hour < 12)
+                                          hour += 12;
+                                        if (period == 'AM' && hour == 12)
+                                          hour = 0;
+
+                                        final AndroidIntent intent =
+                                            AndroidIntent(
+                                          action:
+                                              'android.intent.action.SET_ALARM',
+                                          arguments: <String, dynamic>{
+                                            'android.intent.extra.alarm.HOUR':
+                                                hour,
+                                            'android.intent.extra.alarm.MINUTES':
+                                                minute,
+                                            'android.intent.extra.alarm.SKIP_UI':
+                                                false,
+                                          },
+                                        );
+
+                                        await intent.launch();
+                                      }
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+            )));
+  }
+}
+
+class PrayerClockCircle extends StatelessWidget {
+  final List<String> prayerNames = [
+    'فجر ',
+    'ظہر',
+    'عصر',
+    'مغرب',
+    'عشاء',
+    'جمعہ'
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    double radius = 110;
+    double center = 150;
+
+    return Center(
+      child: Container(
+        width: 300,
+        height: 300,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [Colors.white30, const Color(0xFF0A1D37)],
+            center: Alignment.center,
+            radius: 1.0,
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Center Needle and Flower Circle
+            Align(
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Needle
+                  Container(
+                    width: 6,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+
+                  Container(
+                    margin: EdgeInsets.only(bottom: 50),
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.black, width: 2),
+                      color: Colors.black,
+                    ),
+                    child: const Icon(Icons.star_border, size: 20),
+                  ),
+                ],
+              ),
+            ),
+
+            // 6 prayer circles in clock style
+            for (int i = 0; i < prayerNames.length; i++)
+              Positioned(
+                left: center +
+                    radius * cos(2 * pi * i / prayerNames.length - pi / 2) -
+                    30,
+                top: center +
+                    radius * sin(2 * pi * i / prayerNames.length - pi / 2) -
+                    30,
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDBD0D0),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.grey.shade400,
+                          blurRadius: 4,
+                          offset: const Offset(2, 2))
+                    ],
+                  ),
                   child: Center(
                     child: Text(
-                      "Click a snap and set alarms",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                      prayerNames[i],
                       textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black),
                     ),
                   ),
                 ),
-
-              // 🔹 Show alarm list if alarms exist
-              if (_setAlarms.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _setAlarms.length,
-                    itemBuilder: (context, index) {
-                      return SizedBox(
-                        height: 80,
-                        child: Card(
-                          color: FlutterFlowTheme.of(context).primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ListTile(
-                            leading:
-                                const Icon(Icons.alarm, color: Colors.white),
-                            title: Text(
-                              _setAlarms[index],
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
