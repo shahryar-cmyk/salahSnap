@@ -32,7 +32,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace "com.salahsnap.com"
-    compileSdkVersion 34
+    compileSdkVersion 35
     
 
     compileOptions {
@@ -79,6 +79,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
 }
 
 flutter {
