@@ -98,14 +98,14 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: true
-  web:
-    generate: true
-  image_path: "assets/images/adaptive_foreground_icon.png"
-  adaptive_icon_background: "#081c30"
-  adaptive_icon_foreground: "assets/images/adaptive_foreground_icon.png"
+# flutter_launcher_icons:
+#   android: "launcher_icon"
+#   ios: true
+#   web:
+#     generate: true
+#   image_path: "assets/images/adaptive_foreground_icon.png"
+#   adaptive_icon_background: "#081c30"
+#   adaptive_icon_foreground: "assets/images/adaptive_foreground_icon.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -121,11 +121,11 @@ flutter:
   assets:
     - assets/fonts/
     - assets/images/
-    - assets/videos/
-    - assets/audios/
-    - assets/rive_animations/
-    - assets/pdfs/
-    - assets/jsons/
+    # - assets/videos/
+    # - assets/audios/
+    # - assets/rive_animations/
+    # - assets/pdfs/
+    # - assets/jsons/
 
   fonts:
     - family: "SF Pro"
