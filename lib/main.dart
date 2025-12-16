@@ -84,10 +84,10 @@ class _MyAppState extends State<MyApp> {
         _appStateNotifier.update(user);
       });
 
-    Future.delayed(
-      Duration(milliseconds: 200),
-      () => _appStateNotifier.stopShowingSplashImage(),
-    );
+    // Future.delayed(
+    //   Duration(milliseconds: 200),
+    //   () => _appStateNotifier.stopShowingSplashImage(),
+    // );
   }
 
   void setLocale(String language) {
