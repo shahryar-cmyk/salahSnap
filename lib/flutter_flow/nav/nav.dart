@@ -89,8 +89,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
         FFRoute(
           name: '_initialize',
           path: '/',
-          builder: (context, _) =>
-              appStateNotifier.loggedIn ? NavBarPage() : SplashWidget(),
+          builder: (context, _) => NavBarPage(),
           routes: [
             FFRoute(
               name: SplashWidget.routeName,

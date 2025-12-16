@@ -875,20 +875,103 @@ class _DashboardWidgetState extends State<DashboardWidget> {
   }
 }
 
-class PrayerClockCircle extends StatelessWidget {
-  final List<String> prayerNames = [
-    'فجر ',
-    'ظہر',
-    'عصر',
-    'مغرب',
-    'عشاء',
-    'جمعہ'
+class PrayerClockCircle extends StatefulWidget {
+  final List<Map<String, dynamic>>? alarms; // Pass alarms from parent
+
+  const PrayerClockCircle({
+    Key? key,
+    this.alarms,
+  }) : super(key: key);
+
+  @override
+  State<PrayerClockCircle> createState() => _PrayerClockCircleState();
+}
+
+class _PrayerClockCircleState extends State<PrayerClockCircle> {
+  List<Map<String, String>> prayers = [
+    {'name': 'فجر', 'time': '05:30'},
+    {'name': 'ظہر', 'time': '12:45'},
+    {'name': 'عصر', 'time': '16:00'},
+    {'name': 'مغرب', 'time': '18:30'},
+    {'name': 'عشاء', 'time': '20:00'},
+    {'name': 'جمعہ', 'time': '13:00'},
   ];
+
+  int currentPrayerIndex = 0;
+  double needleAngle = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateCurrentPrayer();
+    // Update every minute to check if prayer time has changed
+    Future.delayed(Duration.zero, () {
+      _startTimer();
+    });
+  }
+
+  void _startTimer() {
+    Future.delayed(const Duration(minutes: 1), () {
+      if (mounted) {
+        _updateCurrentPrayer();
+        _startTimer();
+      }
+    });
+  }
+
+  void _updateCurrentPrayer() {
+    // Get current time
+    final now = TimeOfDay.now();
+    final currentMinutes = now.hour * 60 + now.minute;
+
+    // Find which prayer time has passed and next is upcoming
+    int nextPrayerIndex = 0;
+
+    for (int i = 0; i < prayers.length; i++) {
+      final prayerTime = _parseTime(prayers[i]['time']!);
+      final prayerMinutes = prayerTime.hour * 60 + prayerTime.minute;
+
+      // If current time is before this prayer time, this is the next prayer
+      if (currentMinutes < prayerMinutes) {
+        nextPrayerIndex = i;
+        break;
+      }
+      // If we're past all prayers today, next is first prayer (Fajr)
+      if (i == prayers.length - 1) {
+        nextPrayerIndex = 0;
+      }
+    }
+
+    setState(() {
+      currentPrayerIndex = nextPrayerIndex;
+      // Needle always points to top (next prayer)
+      needleAngle = -pi / 2;
+    });
+  }
+
+  TimeOfDay _parseTime(String time) {
+    final parts = time.split(':');
+    return TimeOfDay(
+      hour: int.parse(parts[0]),
+      minute: int.parse(parts[1]),
+    );
+  }
+
+  // Reorder prayers so current prayer is first
+  List<Map<String, String>> _getReorderedPrayers() {
+    List<Map<String, String>> reordered = [];
+    for (int i = 0; i < prayers.length; i++) {
+      int index = (currentPrayerIndex + i) % prayers.length;
+      reordered.add(prayers[index]);
+    }
+    return reordered;
+  }
 
   @override
   Widget build(BuildContext context) {
     double radius = 110;
     double center = 150;
+    final reorderedPrayers = _getReorderedPrayers();
 
     return Center(
       child: Container(
@@ -904,67 +987,120 @@ class PrayerClockCircle extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Center Needle and Flower Circle
+            // Center Needle pointing to current prayer
             Align(
               alignment: Alignment.center,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Needle
-                  Container(
-                    width: 6,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(5),
+              child: Transform.rotate(
+                angle: needleAngle,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Needle
+                    Container(
+                      width: 6,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: Colors.amber,
+                        borderRadius: BorderRadius.circular(5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.amber.withOpacity(0.5),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-
-                  Container(
-                    margin: EdgeInsets.only(bottom: 50),
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black, width: 2),
-                      color: Colors.black,
-                    ),
-                    child: const Icon(Icons.star_border, size: 20),
-                  ),
-                ],
+                    SizedBox(height: 50),
+                  ],
+                ),
               ),
             ),
 
-            // 6 prayer circles in clock style
-            for (int i = 0; i < prayerNames.length; i++)
+            // Center circle
+            Align(
+              alignment: Alignment.center,
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.amber, width: 2),
+                  color: const Color(0xFF0A1D37),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.amber.withOpacity(0.3),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.star,
+                  size: 16,
+                  color: Colors.amber,
+                ),
+              ),
+            ),
+
+            // Prayer circles - reordered so current is at top
+            for (int i = 0; i < reorderedPrayers.length; i++)
               Positioned(
                 left: center +
-                    radius * cos(2 * pi * i / prayerNames.length - pi / 2) -
+                    radius *
+                        cos(2 * pi * i / reorderedPrayers.length - pi / 2) -
                     30,
                 top: center +
-                    radius * sin(2 * pi * i / prayerNames.length - pi / 2) -
+                    radius *
+                        sin(2 * pi * i / reorderedPrayers.length - pi / 2) -
                     30,
                 child: Container(
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDBD0D0),
+                    color: i == 0
+                        ? Colors.amber.shade100
+                        : const Color(0xFFDBD0D0),
                     shape: BoxShape.circle,
+                    border: i == 0
+                        ? Border.all(color: Colors.amber, width: 3)
+                        : null,
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.grey.shade400,
-                          blurRadius: 4,
-                          offset: const Offset(2, 2))
+                        color: i == 0
+                            ? Colors.amber.withOpacity(0.4)
+                            : Colors.grey.shade400,
+                        blurRadius: i == 0 ? 8 : 4,
+                        offset: const Offset(2, 2),
+                      ),
                     ],
                   ),
                   child: Center(
-                    child: Text(
-                      prayerNames[i],
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          reorderedPrayers[i]['name']!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight:
+                                i == 0 ? FontWeight.w900 : FontWeight.bold,
+                            color:
+                                i == 0 ? Colors.amber.shade900 : Colors.black,
+                          ),
+                        ),
+                        Text(
+                          reorderedPrayers[i]['time']!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w500,
+                            color:
+                                i == 0 ? Colors.amber.shade900 : Colors.black54,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

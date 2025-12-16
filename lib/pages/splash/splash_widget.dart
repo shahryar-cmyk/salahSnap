@@ -15,7 +15,7 @@ class SplashWidget extends StatefulWidget {
   const SplashWidget({super.key});
 
   static String routeName = 'Splash';
-  static String routePath = 'splash';
+  static String routePath = '/splash';
 
   @override
   State<SplashWidget> createState() => _SplashWidgetState();
@@ -23,21 +23,78 @@ class SplashWidget extends StatefulWidget {
 
 class _SplashWidgetState extends State<SplashWidget> {
   late SplashModel _model;
-
   final scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // Loading state track karne ke liye
+  bool _isNavigating = false;
 
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => SplashModel());
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
+    // POST-FRAME CALLBACK - UI ready hone ke baad run hoga
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startAutoNavigation();
+    });
+  }
+
+  // Auto navigation ko separate function mein
+  Future<void> _startAutoNavigation() async {
+    if (!mounted || _isNavigating) return;
+
+    setState(() {
+      _isNavigating = true;
+    });
+
+    // Delay ke saath navigation
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    // Safe navigation with error handling
+    try {
+      context.go('/onboarding');
+    } catch (e) {
+      debugPrint('Navigation error: $e');
+      if (mounted) {
+        setState(() {
+          _isNavigating = false;
+        });
+      }
+    }
+  }
+
+  // Manual button press handler
+  Future<void> _handleGetStarted() async {
+    if (_isNavigating) return; // Duplicate navigation prevent karo
+
+    setState(() {
+      _isNavigating = true;
+    });
+
+    HapticFeedback.lightImpact();
+
+    // Small delay for smooth transition
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (!mounted) return;
+
+    try {
+      context.pushNamed(OnboardingSlideshowWidget.routeName);
+    } catch (e) {
+      debugPrint('Navigation error: $e');
+      if (mounted) {
+        setState(() {
+          _isNavigating = false;
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
     _model.dispose();
-
     super.dispose();
   }
 
@@ -58,11 +115,12 @@ class _SplashWidgetState extends State<SplashWidget> {
             children: [
               Expanded(
                 child: Align(
-                  alignment: AlignmentDirectional(0.0, 0.0),
+                  alignment: const AlignmentDirectional(0.0, 0.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.max,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Logo Container - Optimized
                       Container(
                         width: 250.0,
                         height: 250.0,
@@ -77,14 +135,32 @@ class _SplashWidgetState extends State<SplashWidget> {
                             width: 231.02,
                             height: 200.0,
                             fit: BoxFit.cover,
+                            // Image caching enable karo
+                            cacheWidth: 250,
+                            cacheHeight: 250,
+                            // Error handling
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.image_not_supported,
+                                  size: 50,
+                                  color: Colors.grey,
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
+                      // Title Text - Optimized
                       Padding(
-                        padding:
-                            EdgeInsetsDirectional.fromSTEB(0.0, 24.0, 0.0, 0.0),
+                        padding: const EdgeInsetsDirectional.fromSTEB(
+                            0.0, 24.0, 0.0, 0.0),
                         child: RichText(
                           textScaler: MediaQuery.of(context).textScaler,
+                          // Performance optimization
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           text: TextSpan(
                             children: [
                               TextSpan(
@@ -92,21 +168,9 @@ class _SplashWidgetState extends State<SplashWidget> {
                                 style: FlutterFlowTheme.of(context)
                                     .displaySmall
                                     .override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: FlutterFlowTheme.of(context)
-                                            .displaySmall
-                                            .fontWeight,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .displaySmall
-                                            .fontStyle,
-                                      ),
+                                      fontFamily:
+                                          GoogleFonts.inter().fontFamily,
                                       letterSpacing: 0.0,
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .displaySmall
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .displaySmall
-                                          .fontStyle,
                                     ),
                               ),
                               TextSpan(
@@ -114,45 +178,20 @@ class _SplashWidgetState extends State<SplashWidget> {
                                 style: FlutterFlowTheme.of(context)
                                     .displaySmall
                                     .override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: FlutterFlowTheme.of(context)
-                                            .displaySmall
-                                            .fontWeight,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .displaySmall
-                                            .fontStyle,
-                                      ),
+                                      fontFamily:
+                                          GoogleFonts.inter().fontFamily,
                                       color:
                                           FlutterFlowTheme.of(context).primary,
                                       letterSpacing: 0.0,
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .displaySmall
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .displaySmall
-                                          .fontStyle,
                                     ),
                               )
                             ],
                             style: FlutterFlowTheme.of(context)
                                 .displaySmall
                                 .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .displaySmall
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .displaySmall
-                                        .fontStyle,
-                                  ),
+                                  fontFamily: GoogleFonts.inter().fontFamily,
                                   fontSize: 32.0,
                                   letterSpacing: 0.0,
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .displaySmall
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .displaySmall
-                                      .fontStyle,
                                 ),
                           ),
                         ),
@@ -161,46 +200,31 @@ class _SplashWidgetState extends State<SplashWidget> {
                   ),
                 ),
               ),
+              // Button Section - Optimized
               Padding(
-                padding: EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 12.0),
+                padding:
+                    const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 12.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.max,
                   children: [
                     FFButtonWidget(
-                      onPressed: () async {
-                        HapticFeedback.lightImpact();
-
-                        context.pushNamed(OnboardingSlideshowWidget.routeName);
-                      },
-                      text: 'Get Started',
+                      onPressed: _isNavigating ? null : _handleGetStarted,
+                      text: _isNavigating ? 'Loading...' : 'Get Started',
                       options: FFButtonOptions(
                         width: double.infinity,
                         height: 50.0,
-                        padding:
-                            EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
-                        iconPadding:
-                            EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+                        padding: const EdgeInsetsDirectional.fromSTEB(
+                            0.0, 0.0, 0.0, 0.0),
+                        iconPadding: const EdgeInsetsDirectional.fromSTEB(
+                            0.0, 0.0, 0.0, 0.0),
                         color: FlutterFlowTheme.of(context).primary,
                         textStyle:
                             FlutterFlowTheme.of(context).titleSmall.override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .titleSmall
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .titleSmall
-                                        .fontStyle,
-                                  ),
+                                  fontFamily: GoogleFonts.inter().fontFamily,
                                   letterSpacing: 0.0,
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .titleSmall
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .titleSmall
-                                      .fontStyle,
                                 ),
                         elevation: 0.0,
-                        borderSide: BorderSide(
+                        borderSide: const BorderSide(
                           color: Colors.transparent,
                           width: 1.0,
                         ),
