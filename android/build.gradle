@@ -1,28 +1,21 @@
-allprojects {
-    // ext.kotlin_version = '1.9.10' 
+buildscript {
     repositories {
         google()
         mavenCentral()
     }
-    //  dependencies {
-    //     classpath 'com.android.tools.build:gradle:8.1.4'  // Update from 8.1.0 to 8.1.4
-    //     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    // }
+    dependencies {
+        classpath 'com.google.gms:google-services:4.4.4'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
 }
 
 rootProject.buildDir = '../build'
-
-subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty("kotlin")) {
-            project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-                kotlinOptions {
-                    jvmTarget = "1.8"
-                }
-            }
-        }
-    }
-}
 
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"

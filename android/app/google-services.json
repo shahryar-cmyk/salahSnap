@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "494359488452",
+    "project_id": "salahsnap-d2bf9",
+    "storage_bucket": "salahsnap-d2bf9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:494359488452:android:09026d969370180e4d6691",
+        "android_client_info": {
+          "package_name": "com.salahsnap.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCPnAN4x7_-14w9-3mSUKpHSyab1oX2LM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

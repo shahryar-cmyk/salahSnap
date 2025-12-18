@@ -34,36 +34,17 @@ class _SplashWidgetState extends State<SplashWidget> {
     _model = createModel(context, () => SplashModel());
 
     // POST-FRAME CALLBACK - UI ready hone ke baad run hoga
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startAutoNavigation();
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _startAutoNavigation();
+    // });
   }
 
   // Auto navigation ko separate function mein
-  Future<void> _startAutoNavigation() async {
-    if (!mounted || _isNavigating) return;
-
-    setState(() {
-      _isNavigating = true;
-    });
-
-    // Delay ke saath navigation
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (!mounted) return;
-
-    // Safe navigation with error handling
-    try {
-      context.go('/onboarding');
-    } catch (e) {
-      debugPrint('Navigation error: $e');
-      if (mounted) {
-        setState(() {
-          _isNavigating = false;
-        });
-      }
-    }
-  }
+  // Future<void> _startAutoNavigation() async {
+  //   await Future.delayed(const Duration(seconds: 2));
+  //   if (!mounted) return;
+  //   context.go('/onboarding');
+  // }
 
   // Manual button press handler
   Future<void> _handleGetStarted() async {

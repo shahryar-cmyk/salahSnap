@@ -42,8 +42,9 @@ class AppStateNotifier extends ChangeNotifier {
   /// intend to sign in/out and then navigate or perform any actions after.
   /// Otherwise, this will trigger a refresh and interrupt the action(s).
   bool notifyOnAuthChange = true;
+  bool get loading => showSplashImage;
 
-  bool get loading => user == null || showSplashImage;
+  // bool get loading => user == null || showSplashImage;
   bool get loggedIn => user?.loggedIn ?? false;
   bool get initiallyLoggedIn => initialUser?.loggedIn ?? false;
   bool get shouldRedirect => loggedIn && _redirectLocation != null;
@@ -334,8 +335,9 @@ class FFRoute {
 
           if (requireAuth && !appStateNotifier.loggedIn) {
             appStateNotifier.setRedirectLocationIfUnset(state.uri.toString());
-            return '/splash';
+            return '/onboarding';
           }
+
           return null;
         },
         pageBuilder: (context, state) {

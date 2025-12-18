@@ -85,6 +85,7 @@ dependencies:
   cupertino_icons: ^1.0.0
   image: ^4.1.7
   flutter_image_compress: ^2.4.0
+  mobile_scanner: ^7.1.4
   # sqflite_android: ^2.3.0+1
   # background_remover: ^0.0.3
   # image_background_remover: ^1.0.0

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:provider/provider.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -16,21 +18,15 @@ import 'package:google_fonts/google_fonts.dart';
 import 'flutter_flow/nav/nav.dart';
 import 'index.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  GoRouter.optionURLReflectsImperativeAPIs = true;
-  usePathUrlStrategy();
-  await FlutterFlowTheme.initialize();
 
-  await authManager.initialize();
-
-  final appState = FFAppState(); // Initialize FFAppState
-  await appState.initializePersistedState();
-
-  runApp(ChangeNotifierProvider(
-    create: (context) => appState,
-    child: MyApp(),
-  ));
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => FFAppState(),
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -55,39 +51,33 @@ class _MyAppState extends State<MyApp> {
 
   ThemeMode _themeMode = FlutterFlowTheme.themeMode;
 
-  late AppStateNotifier _appStateNotifier;
-  late GoRouter _router;
-  String getRoute([RouteMatch? routeMatch]) {
-    final RouteMatch lastMatch =
-        routeMatch ?? _router.routerDelegate.currentConfiguration.last;
-    final RouteMatchList matchList = lastMatch is ImperativeRouteMatch
-        ? lastMatch.matches
-        : _router.routerDelegate.currentConfiguration;
-    return matchList.uri.toString();
-  }
+  late final AppStateNotifier _appStateNotifier;
+  GoRouter? _router;
 
-  List<String> getRouteStack() =>
-      _router.routerDelegate.currentConfiguration.matches
-          .map((e) => getRoute())
-          .toList();
-
-  late Stream<SalahSnapVersionSecondAuthUser> userStream;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-
     _appStateNotifier = AppStateNotifier.instance;
-    _router = createRouter(_appStateNotifier);
-    userStream = salahSnapVersionSecondAuthUserStream()
-      ..listen((user) {
-        _appStateNotifier.update(user);
-      });
+    _initializeApp();
+  }
 
-    // Future.delayed(
-    //   Duration(milliseconds: 200),
-    //   () => _appStateNotifier.stopShowingSplashImage(),
-    // );
+  Future<void> _initializeApp() async {
+    await FlutterFlowTheme.initialize();
+    await authManager.initialize();
+    await FFAppState().initializePersistedState();
+
+    _router = createRouter(_appStateNotifier);
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    _appStateNotifier.stopShowingSplashImage();
+
+    if (mounted) {
+      setState(() {
+        _initialized = true;
+      });
+    }
   }
 
   void setLocale(String language) {
@@ -101,11 +91,23 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔒 Jab tak router ready nahi hota
+    if (!_initialized || _router == null) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'MealPlanner',
       scrollBehavior: MyAppScrollBehavior(),
-      localizationsDelegates: [
+      localizationsDelegates: const [
         FFLocalizationsDelegate(),
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -126,9 +128,13 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: false,
       ),
       themeMode: _themeMode,
-      routerConfig: _router,
+      routerConfig: _router!,
     );
   }
+
+  getRoute() {}
+
+  getRouteStack() {}
 }
 
 class NavBarPage extends StatefulWidget {
