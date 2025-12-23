@@ -1,3 +1,5 @@
+import 'package:salah_snap_version_second/l10n/app_localizations.dart';
+
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -41,6 +43,7 @@ class _AboutUsWidgetState extends State<AboutUsWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -67,9 +70,12 @@ class _AboutUsWidgetState extends State<AboutUsWidget> {
             },
           ),
           title: Align(
-            alignment: AlignmentDirectional(0.0, 0.0),
+            alignment: AlignmentDirectional(-0.05, 0.0),
             child: Text(
-              'About Us',
+              (l10n?.aboutUs ?? 'About Us').maybeHandleOverflow(
+                maxChars: 20,
+                replacement: '…',
+              ),
               style: FlutterFlowTheme.of(context).headlineMedium.override(
                     font: GoogleFonts.inter(
                       fontWeight: FlutterFlowTheme.of(context)

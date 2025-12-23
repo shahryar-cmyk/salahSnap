@@ -3,10 +3,15 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:android_intent_plus/android_intent.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mobile_scanner/mobile_scanner.dart' show MobileScanner;
+import 'package:salah_snap_version_second/index.dart';
 import 'package:salah_snap_version_second/pages/meals/dashboard/ImageToImage.dart';
+import 'package:salah_snap_version_second/pages/meals/dashboard/laguage-Page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '/flutter_flow/flutter_flow_theme.dart';
@@ -36,67 +41,139 @@ class _DashboardWidgetState extends State<DashboardWidget> {
   late DashboardModel _model;
   String extractedText = '';
   Future<void> setPrayerAlarms() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     List<String> alarms = [];
 
-    for (var entry in _prayerTimes.entries) {
-      final timeParts = entry.value.split(":");
-      if (timeParts.length == 2) {
-        int hour = int.tryParse(timeParts[0]) ?? 0;
-        final int minute = int.tryParse(timeParts[1]) ?? 0;
-        bool isAm = false;
-        String period = 'AM';
+    for (final entry in _prayerTimes.entries) {
+      if (entry.value.isEmpty) continue;
 
-        if (entry.key == 'Fajr') {
-          isAm = true;
-          period = 'AM';
-          if (hour == 0) hour = 12;
-        } else {
-          period = 'PM';
-          if (hour < 12) hour += 12;
-          if (hour == 24) hour = 12;
-        }
+      final parts = entry.value.split(":");
+      if (parts.length != 2) continue;
 
-        final alarmIntent = AndroidIntent(
-          action: 'android.intent.action.SET_ALARM',
-          arguments: <String, dynamic>{
-            'android.intent.extra.alarm.HOUR': hour,
-            'android.intent.extra.alarm.MINUTES': minute,
-            'android.intent.extra.alarm.MESSAGE':
-                '${entry.key} Prayer ($period)',
-            'android.intent.extra.alarm.SKIP_UI': true,
-          },
-        );
+      int hour = int.parse(parts[0]);
+      int minute = int.parse(parts[1]);
 
-        await alarmIntent.launch();
+      final intent = AndroidIntent(
+        action: 'android.intent.action.SET_ALARM',
+        arguments: {
+          'android.intent.extra.alarm.HOUR': hour,
+          'android.intent.extra.alarm.MINUTES': minute,
+          'android.intent.extra.alarm.MESSAGE': '${entry.key} Prayer',
+          'android.intent.extra.alarm.SKIP_UI': true,
+        },
+      );
 
-        final formattedTime =
-            '${entry.key}: ${hour > 12 ? hour - 12 : hour}:${minute.toString().padLeft(2, '0')} $period';
-
-        alarms.add(formattedTime);
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$formattedTime alarm set'),
-              duration: const Duration(seconds: 1),
-              backgroundColor: Colors.blue,
-            ),
-          );
-        }
-
-        await Future.delayed(const Duration(seconds: 2));
-      }
+      await intent.launch();
+      alarms.add("${entry.key}: ${entry.value}");
+      await Future.delayed(const Duration(milliseconds: 800));
     }
 
-    // ✅ Save to shared preferences
-    await prefs.setStringList('set_alarms', alarms);
+    await prefs.setStringList("set_alarms", alarms);
 
-    // ✅ Update UI
     setState(() {
       _setAlarms = alarms;
     });
   }
+
+  Future<void> savePrayerTimesToFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      debugPrint("⚠️ Skipping Firebase save (user not logged in)");
+      return;
+    }
+
+    await FirebaseFirestore.instance
+        .collection("prayer_times")
+        .doc(user.uid)
+        .set({
+      ..._prayerTimes,
+      "createdAt": FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    debugPrint("✅ Prayer times saved to Firebase");
+  }
+
+  Future<void> openQRScanner() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PrayerQRScanner()),
+    );
+
+    if (result != null && result is String) {
+      await fetchPrayerTimesFromFirebase(result);
+    }
+  }
+
+  Future<void> fetchPrayerTimesFromFirebase(String qrValue) async {
+    try {
+      qrValue = qrValue.trim();
+
+      // ✅ Extract ID from Google Drive URL
+      String mosqueId = qrValue;
+      if (qrValue.contains('/')) {
+        mosqueId = qrValue.split('/').last;
+      }
+
+      print("🆔 Extracted Mosque ID: $mosqueId");
+
+      final docRef =
+          FirebaseFirestore.instance.collection('mosques').doc(mosqueId);
+
+      final doc = await docRef.get();
+
+      // 🟢 IF DOCUMENT DOES NOT EXIST → CREATE IT
+      if (!doc.exists) {
+        print("⚠️ Mosque not found → creating default data");
+
+        await docRef.set({
+          "fajr": "05:00",
+          "zuhr": "12:30",
+          "asr": "16:00",
+          "maghrib": "18:45",
+          "isha": "20:00",
+          "createdAt": FieldValue.serverTimestamp(),
+          "autoGenerated": true,
+        });
+
+        print("✅ Mosque auto-created in Firestore");
+      }
+
+      // 🔄 FETCH AGAIN (after create OR if already existed)
+      final freshDoc = await docRef.get();
+      final data = freshDoc.data()!;
+
+      setState(() {
+        _prayerTimes['Fajr'] = data['fajr'] ?? '';
+        _prayerTimes['Dhuhr'] = data['zuhr'] ?? '';
+        _prayerTimes['Asr'] = data['asr'] ?? '';
+        _prayerTimes['Maghrib'] = data['maghrib'] ?? '';
+        _prayerTimes['Isha'] = data['isha'] ?? '';
+      });
+
+      print("✅ Prayer times loaded");
+      showPrayerTimesPopup(); // 🔥 popup guaranteed
+    } catch (e) {
+      print("🔥 Error fetching/creating mosque: $e");
+    }
+  }
+
+  final List<Map<String, String>> _prayerOrder = [
+    {'key': 'Fajr', 'name': 'Fajr'},
+    {'key': 'Dhuhr', 'name': 'Dhuhr'},
+    {'key': 'Asr', 'name': 'Asr'},
+    {'key': 'Maghrib', 'name': 'Maghrib'},
+    {'key': 'Isha', 'name': 'Isha'},
+    {'key': 'Jumuah', 'name': 'Jumuah'},
+  ];
+  final Map<String, String> _prayerTimes = {
+    "Fajr": "",
+    "Dhuhr": "",
+    "Asr": "",
+    "Maghrib": "",
+    "Isha": "",
+    "Jumuah": "",
+  };
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
@@ -116,52 +193,39 @@ class _DashboardWidgetState extends State<DashboardWidget> {
 
   File? _image;
   String _text = "";
-  final Map<String, String> _prayerTimes = {};
 
   // Display order
-  final List<Map<String, String>> _prayerOrder = [
-    {'key': 'Fajr', 'name': 'Fajr'},
-    {'key': 'Dhuhr', 'name': 'Dhuhr'},
-    {'key': 'Asr', 'name': 'Asr'},
-    {'key': 'Maghrib', 'name': 'Maghrib'},
-    {'key': 'Isha', 'name': 'Isha'},
-  ];
   void showPrayerTimesPopup() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text("Prayer Times"),
-        content: _prayerTimes.isEmpty
-            ? const Text("No prayer times available.")
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: _prayerOrder.map((prayer) {
-                  final time = _prayerTimes[prayer['key']];
-                  return time != null
-                      ? Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6.0),
-                          child: Row(
-                            children: [
-                              Text(
-                                "${prayer['name']}: ",
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                time,
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            ],
-                          ),
-                        )
-                      : const SizedBox.shrink();
-                }).toList(),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: _prayerTimes.entries.map((e) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(e.key,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(e.value),
+                ],
               ),
+            );
+          }).toList(),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.pop(context);
+              setPrayerAlarms();
+            },
+            child: const Text("Set Alarms"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
             child: const Text("Close"),
           ),
         ],
@@ -187,9 +251,10 @@ class _DashboardWidgetState extends State<DashboardWidget> {
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text('Camera'),
-              onTap: () {
-                Navigator.of(context).pop();
-                pickImage(ImageSource.camera);
+              onTap: () async {
+                print("📷 Opening camera for QR scan");
+                Navigator.of(context).pop(); // bottom sheet close
+                await openQRScanner(); // QR scanner open
               },
             ),
             ListTile(
@@ -663,6 +728,7 @@ class _DashboardWidgetState extends State<DashboardWidget> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
     _loadSetAlarms();
+    FirebaseAuth.instance.signInAnonymously();
   }
 
   Future<void> _loadSetAlarms() async {
@@ -679,6 +745,38 @@ class _DashboardWidgetState extends State<DashboardWidget> {
     _model.dispose();
 
     super.dispose();
+  }
+
+  Widget _drawerCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor:
+                FlutterFlowTheme.of(context).primary.withOpacity(0.15),
+            child: Icon(icon, color: FlutterFlowTheme.of(context).primary),
+          ),
+          title: Text(
+            title,
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: Text(subtitle),
+          trailing: Icon(Icons.arrow_forward_ios, size: 16),
+          onTap: onTap,
+        ),
+      ),
+    );
   }
 
   @override
@@ -726,10 +824,82 @@ class _DashboardWidgetState extends State<DashboardWidget> {
             //     ],
             //   ),
             // ),
+            drawer: Drawer(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  /// 🔹 Drawer Header
+                  DrawerHeader(
+                    decoration: BoxDecoration(
+                      color: FlutterFlowTheme.of(context).primary,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Icon(Icons.mosque, color: Colors.white, size: 40),
+                        SizedBox(height: 30),
+                        Text(
+                          'Salat Snap',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
+                  /// 🔹 About Us Card
+                  _drawerCard(
+                    context,
+                    icon: Icons.info_outline,
+                    title: 'About Us',
+                    subtitle: 'Learn more about Salat Snap',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => AboutUsWidget()),
+                      );
+                    },
+                  ),
+
+                  /// 🔹 Contact Us Card
+                  _drawerCard(
+                    context,
+                    icon: Icons.call_outlined,
+                    title: 'Contact Us',
+                    subtitle: 'Get in touch with us',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ContactUsWidget()),
+                      );
+                    },
+                  ),
+
+                  /// 🔹 Language Card
+                  _drawerCard(
+                    context,
+                    icon: Icons.language_outlined,
+                    title: 'Language',
+                    subtitle: 'Change app language',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LanguagePage()),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
             appBar: AppBar(
               backgroundColor: FlutterFlowTheme.of(context).primary,
-              automaticallyImplyLeading: false,
+              automaticallyImplyLeading: true,
               title: Align(
                 alignment: AlignmentDirectional(0.0, 0.0),
                 child: Text(
@@ -792,7 +962,7 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                           const SizedBox(height: 20),
 
                           // 🔹 Prayer Clock Design UI (like your image)
-                          PrayerClockCircle(),
+                          // PrayerClockCircle(),
 
                           const SizedBox(height: 20),
 
@@ -875,237 +1045,274 @@ class _DashboardWidgetState extends State<DashboardWidget> {
   }
 }
 
-class PrayerClockCircle extends StatefulWidget {
-  final List<Map<String, dynamic>>? alarms; // Pass alarms from parent
-
-  const PrayerClockCircle({
-    Key? key,
-    this.alarms,
-  }) : super(key: key);
-
-  @override
-  State<PrayerClockCircle> createState() => _PrayerClockCircleState();
-}
-
-class _PrayerClockCircleState extends State<PrayerClockCircle> {
-  List<Map<String, String>> prayers = [
-    {'name': 'فجر', 'time': '05:30'},
-    {'name': 'ظہر', 'time': '12:45'},
-    {'name': 'عصر', 'time': '16:00'},
-    {'name': 'مغرب', 'time': '18:30'},
-    {'name': 'عشاء', 'time': '20:00'},
-    {'name': 'جمعہ', 'time': '13:00'},
-  ];
-
-  int currentPrayerIndex = 0;
-  double needleAngle = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _updateCurrentPrayer();
-    // Update every minute to check if prayer time has changed
-    Future.delayed(Duration.zero, () {
-      _startTimer();
-    });
-  }
-
-  void _startTimer() {
-    Future.delayed(const Duration(minutes: 1), () {
-      if (mounted) {
-        _updateCurrentPrayer();
-        _startTimer();
-      }
-    });
-  }
-
-  void _updateCurrentPrayer() {
-    // Get current time
-    final now = TimeOfDay.now();
-    final currentMinutes = now.hour * 60 + now.minute;
-
-    // Find which prayer time has passed and next is upcoming
-    int nextPrayerIndex = 0;
-
-    for (int i = 0; i < prayers.length; i++) {
-      final prayerTime = _parseTime(prayers[i]['time']!);
-      final prayerMinutes = prayerTime.hour * 60 + prayerTime.minute;
-
-      // If current time is before this prayer time, this is the next prayer
-      if (currentMinutes < prayerMinutes) {
-        nextPrayerIndex = i;
-        break;
-      }
-      // If we're past all prayers today, next is first prayer (Fajr)
-      if (i == prayers.length - 1) {
-        nextPrayerIndex = 0;
-      }
-    }
-
-    setState(() {
-      currentPrayerIndex = nextPrayerIndex;
-      // Needle always points to top (next prayer)
-      needleAngle = -pi / 2;
-    });
-  }
-
-  TimeOfDay _parseTime(String time) {
-    final parts = time.split(':');
-    return TimeOfDay(
-      hour: int.parse(parts[0]),
-      minute: int.parse(parts[1]),
-    );
-  }
-
-  // Reorder prayers so current prayer is first
-  List<Map<String, String>> _getReorderedPrayers() {
-    List<Map<String, String>> reordered = [];
-    for (int i = 0; i < prayers.length; i++) {
-      int index = (currentPrayerIndex + i) % prayers.length;
-      reordered.add(prayers[index]);
-    }
-    return reordered;
-  }
+class PrayerQRScanner extends StatelessWidget {
+  const PrayerQRScanner({super.key});
 
   @override
   Widget build(BuildContext context) {
-    double radius = 110;
-    double center = 150;
-    final reorderedPrayers = _getReorderedPrayers();
+    return Scaffold(
+      appBar: AppBar(title: const Text("Scan QR")),
+      body: MobileScanner(
+        onDetect: (barcode) {
+          final String? code = barcode.barcodes.first.rawValue;
 
-    return Center(
-      child: Container(
-        width: 300,
-        height: 300,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [Colors.white30, const Color(0xFF0A1D37)],
-            center: Alignment.center,
-            radius: 1.0,
-          ),
-        ),
-        child: Stack(
-          children: [
-            // Center Needle pointing to current prayer
-            Align(
-              alignment: Alignment.center,
-              child: Transform.rotate(
-                angle: needleAngle,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Needle
-                    Container(
-                      width: 6,
-                      height: 70,
-                      decoration: BoxDecoration(
-                        color: Colors.amber,
-                        borderRadius: BorderRadius.circular(5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.amber.withOpacity(0.5),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 50),
-                  ],
-                ),
-              ),
-            ),
+          if (code == null) return;
 
-            // Center circle
-            Align(
-              alignment: Alignment.center,
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.amber, width: 2),
-                  color: const Color(0xFF0A1D37),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.amber.withOpacity(0.3),
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.star,
-                  size: 16,
-                  color: Colors.amber,
-                ),
-              ),
-            ),
+          Navigator.pop(context, code); // 🔥 VERY IMPORTANT
+        },
+      ),
+    );
+  }
+}
 
-            // Prayer circles - reordered so current is at top
-            for (int i = 0; i < reorderedPrayers.length; i++)
-              Positioned(
-                left: center +
-                    radius *
-                        cos(2 * pi * i / reorderedPrayers.length - pi / 2) -
-                    30,
-                top: center +
-                    radius *
-                        sin(2 * pi * i / reorderedPrayers.length - pi / 2) -
-                    30,
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: i == 0
-                        ? Colors.amber.shade100
-                        : const Color(0xFFDBD0D0),
-                    shape: BoxShape.circle,
-                    border: i == 0
-                        ? Border.all(color: Colors.amber, width: 3)
-                        : null,
-                    boxShadow: [
-                      BoxShadow(
-                        color: i == 0
-                            ? Colors.amber.withOpacity(0.4)
-                            : Colors.grey.shade400,
-                        blurRadius: i == 0 ? 8 : 4,
-                        offset: const Offset(2, 2),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          reorderedPrayers[i]['name']!,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight:
-                                i == 0 ? FontWeight.w900 : FontWeight.bold,
-                            color:
-                                i == 0 ? Colors.amber.shade900 : Colors.black,
-                          ),
-                        ),
-                        Text(
-                          reorderedPrayers[i]['time']!,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w500,
-                            color:
-                                i == 0 ? Colors.amber.shade900 : Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
+// class PrayerClockCircle extends StatefulWidget {
+//   final List<Map<String, dynamic>>? alarms; // Pass alarms from parent
+
+//   const PrayerClockCircle({
+//     Key? key,
+//     this.alarms,
+//   }) : super(key: key);
+
+//   @override
+//   State<PrayerClockCircle> createState() => _PrayerClockCircleState();
+// }
+
+// class _PrayerClockCircleState extends State<PrayerClockCircle> {
+//   List<Map<String, String>> prayers = [
+//     {'name': 'فجر', 'time': '05:30'},
+//     {'name': 'ظہر', 'time': '12:45'},
+//     {'name': 'عصر', 'time': '16:00'},
+//     {'name': 'مغرب', 'time': '18:30'},
+//     {'name': 'عشاء', 'time': '20:00'},
+//     {'name': 'جمعہ', 'time': '13:00'},
+//   ];
+
+//   int currentPrayerIndex = 0;
+//   double needleAngle = 0;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _updateCurrentPrayer();
+//     // Update every minute to check if prayer time has changed
+//     Future.delayed(Duration.zero, () {
+//       _startTimer();
+//     });
+//   }
+
+//   void _startTimer() {
+//     Future.delayed(const Duration(minutes: 1), () {
+//       if (mounted) {
+//         _updateCurrentPrayer();
+//         _startTimer();
+//       }
+//     });
+//   }
+
+//   void _updateCurrentPrayer() {
+//     // Get current time
+//     final now = TimeOfDay.now();
+//     final currentMinutes = now.hour * 60 + now.minute;
+
+//     // Find which prayer time has passed and next is upcoming
+//     int nextPrayerIndex = 0;
+
+//     for (int i = 0; i < prayers.length; i++) {
+//       final prayerTime = _parseTime(prayers[i]['time']!);
+//       final prayerMinutes = prayerTime.hour * 60 + prayerTime.minute;
+
+//       // If current time is before this prayer time, this is the next prayer
+//       if (currentMinutes < prayerMinutes) {
+//         nextPrayerIndex = i;
+//         break;
+//       }
+//       // If we're past all prayers today, next is first prayer (Fajr)
+//       if (i == prayers.length - 1) {
+//         nextPrayerIndex = 0;
+//       }
+//     }
+
+//     setState(() {
+//       currentPrayerIndex = nextPrayerIndex;
+//       // Needle always points to top (next prayer)
+//       needleAngle = -pi / 2;
+//     });
+//   }
+
+//   TimeOfDay _parseTime(String time) {
+//     final parts = time.split(':');
+//     return TimeOfDay(
+//       hour: int.parse(parts[0]),
+//       minute: int.parse(parts[1]),
+//     );
+//   }
+
+//   // Reorder prayers so current prayer is first
+//   List<Map<String, String>> _getReorderedPrayers() {
+//     List<Map<String, String>> reordered = [];
+//     for (int i = 0; i < prayers.length; i++) {
+//       int index = (currentPrayerIndex + i) % prayers.length;
+//       reordered.add(prayers[index]);
+//     }
+//     return reordered;
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     double radius = 110;
+//     double center = 150;
+//     final reorderedPrayers = _getReorderedPrayers();
+
+//     return Center(
+//       child: Container(
+//         width: 300,
+//         height: 300,
+//         decoration: BoxDecoration(
+//           shape: BoxShape.circle,
+//           gradient: RadialGradient(
+//             colors: [Colors.white30, const Color(0xFF0A1D37)],
+//             center: Alignment.center,
+//             radius: 1.0,
+//           ),
+//         ),
+//         child: Stack(
+//           children: [
+//             // Center Needle pointing to current prayer
+//             Align(
+//               alignment: Alignment.center,
+//               child: Transform.rotate(
+//                 angle: needleAngle,
+//                 child: Column(
+//                   mainAxisSize: MainAxisSize.min,
+//                   children: [
+//                     // Needle
+//                     Container(
+//                       width: 6,
+//                       height: 70,
+//                       decoration: BoxDecoration(
+//                         color: Colors.amber,
+//                         borderRadius: BorderRadius.circular(5),
+//                         boxShadow: [
+//                           BoxShadow(
+//                             color: Colors.amber.withOpacity(0.5),
+//                             blurRadius: 8,
+//                             spreadRadius: 2,
+//                           ),
+//                         ],
+//                       ),
+//                     ),
+//                     SizedBox(height: 50),
+//                   ],
+//                 ),
+//               ),
+//             ),
+
+//             // Center circle
+//             Align(
+//               alignment: Alignment.center,
+//               child: Container(
+//                 width: 30,
+//                 height: 30,
+//                 decoration: BoxDecoration(
+//                   shape: BoxShape.circle,
+//                   border: Border.all(color: Colors.amber, width: 2),
+//                   color: const Color(0xFF0A1D37),
+//                   boxShadow: [
+//                     BoxShadow(
+//                       color: Colors.amber.withOpacity(0.3),
+//                       blurRadius: 10,
+//                       spreadRadius: 2,
+//                     ),
+//                   ],
+//                 ),
+//                 child: const Icon(
+//                   Icons.star,
+//                   size: 16,
+//                   color: Colors.amber,
+//                 ),
+//               ),
+//             ),
+
+//             // Prayer circles - reordered so current is at top
+//             for (int i = 0; i < reorderedPrayers.length; i++)
+//               Positioned(
+//                 left: center +
+//                     radius *
+//                         cos(2 * pi * i / reorderedPrayers.length - pi / 2) -
+//                     30,
+//                 top: center +
+//                     radius *
+//                         sin(2 * pi * i / reorderedPrayers.length - pi / 2) -
+//                     30,
+//                 child: Container(
+//                   width: 60,
+//                   height: 60,
+//                   decoration: BoxDecoration(
+//                     color: i == 0
+//                         ? Colors.amber.shade100
+//                         : const Color(0xFFDBD0D0),
+//                     shape: BoxShape.circle,
+//                     border: i == 0
+//                         ? Border.all(color: Colors.amber, width: 3)
+//                         : null,
+//                     boxShadow: [
+//                       BoxShadow(
+//                         color: i == 0
+//                             ? Colors.amber.withOpacity(0.4)
+//                             : Colors.grey.shade400,
+//                         blurRadius: i == 0 ? 8 : 4,
+//                         offset: const Offset(2, 2),
+//                       ),
+//                     ],
+//                   ),
+//                   child: Center(
+//                     child: Column(
+//                       mainAxisAlignment: MainAxisAlignment.center,
+//                       children: [
+//                         Text(
+//                           reorderedPrayers[i]['name']!,
+//                           textAlign: TextAlign.center,
+//                           style: TextStyle(
+//                             fontSize: 12,
+//                             fontWeight:
+//                                 i == 0 ? FontWeight.w900 : FontWeight.bold,
+//                             color:
+//                                 i == 0 ? Colors.amber.shade900 : Colors.black,
+//                           ),
+//                         ),
+//                         Text(
+//                           reorderedPrayers[i]['time']!,
+//                           textAlign: TextAlign.center,
+//                           style: TextStyle(
+//                             fontSize: 9,
+//                             fontWeight: FontWeight.w500,
+//                             color:
+//                                 i == 0 ? Colors.amber.shade900 : Colors.black54,
+//                           ),
+//                         ),
+//                       ],
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+class AboutPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('About Page'),
+      ),
+      body: Center(
+        child: Text(
+          'This is About Page',
+          style: TextStyle(fontSize: 18),
         ),
       ),
     );

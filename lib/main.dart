@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:salah_snap_version_second/l10n/app_localizations.dart';
 
 import 'auth/custom_auth/auth_util.dart';
 import 'auth/custom_auth/custom_auth_user_provider.dart';
@@ -17,9 +19,15 @@ import 'flutter_flow/internationalization.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'flutter_flow/nav/nav.dart';
 import 'index.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   runApp(
     ChangeNotifierProvider(
@@ -94,6 +102,40 @@ class _MyAppState extends State<MyApp> {
     // 🔒 Jab tak router ready nahi hota
     if (!_initialized || _router == null) {
       return MaterialApp(
+        locale: const Locale('en'), // default
+
+        supportedLocales: const [
+          Locale('en'),
+          Locale('ur'),
+        ],
+
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        title: 'MealPlanner',
+        scrollBehavior: MyAppScrollBehavior(),
+        theme: ThemeData(
+          brightness: Brightness.light,
+          useMaterial3: false,
+        ),
+        darkTheme: ThemeData(
+          brightness: Brightness.dark,
+          useMaterial3: false,
+        ),
+        themeMode: _themeMode,
+        home: Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
+    // 🔥 Firebase initialize check
+    if (Firebase.apps.isEmpty) {
+      return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: const Scaffold(
           body: Center(
@@ -105,19 +147,18 @@ class _MyAppState extends State<MyApp> {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'MealPlanner',
+      title: 'Salat Snap',
       scrollBehavior: MyAppScrollBehavior(),
+      locale: _locale ?? const Locale('en'),
+      supportedLocales: const [
+        Locale('en'),
+        Locale('ur'),
+      ],
       localizationsDelegates: const [
-        FFLocalizationsDelegate(),
+        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
-        FallbackMaterialLocalizationDelegate(),
-        FallbackCupertinoLocalizationDelegate(),
-      ],
-      locale: _locale,
-      supportedLocales: const [
-        Locale('en'),
       ],
       theme: ThemeData(
         brightness: Brightness.light,

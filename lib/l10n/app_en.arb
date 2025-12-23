@@ -1,0 +1,15 @@
+{
+  "appTitle": "Salat Snap",
+  "aboutUs": "About Us",
+  "contactUs": "Contact Us",
+  "language": "Language",
+  "selectLanguage": "Select Language",
+
+  "aboutUsTitle": "About Us",
+  "aboutIntro": "Welcome to Salat Snap – a simple yet powerful Islamic app designed to help Muslims stay connected with their prayers, no matter where they are in the world.",
+
+  "aboutBody": "Salat Snap offers a unique way to set prayer times: just take a picture of a clock, and the app will automatically detect your location and set alarms for all five daily prayers — Fajr, Dhuhr, Asr, Maghrib, Isha — as well as Jumuah on Fridays.\n\nWe created Salat Snap to make prayer time reminders easy, smart, and accessible for everyone. No complicated settings, no confusion — just a thoughtful tool to help you never miss a prayer again.",
+
+  "weBelieve": "We believe:",
+  "quote": "Prayer is the pillar of faith.\nLet’s hold onto it with strength and ease, together."
+}

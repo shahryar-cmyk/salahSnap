@@ -278,7 +278,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                                 EdgeInsetsDirectional.fromSTEB(
                                                     0.0, 48.0, 0.0, 0.0),
                                             child: Text(
-                                              'automatically alarm set',
+                                              'Automatically alarm set',
                                               textAlign: TextAlign.center,
                                               style:
                                                   FlutterFlowTheme.of(context)
@@ -351,7 +351,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                                 topRight: Radius.circular(20.0),
                                               ),
                                               child: Image.asset(
-                                                'assets/images/page_silder.jpg',
+                                                'assets/images/image.jpg',
                                                 height: 250.0,
                                                 fit: BoxFit.contain,
                                               ),

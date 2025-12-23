@@ -112,7 +112,7 @@ class _SplashWidgetState extends State<SplashWidget> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8.0),
                           child: Image.asset(
-                            'assets/images/salat_snap_logo.png',
+                            'assets/images/app.png',
                             width: 231.02,
                             height: 200.0,
                             fit: BoxFit.cover,
@@ -154,6 +154,7 @@ class _SplashWidgetState extends State<SplashWidget> {
                                       letterSpacing: 0.0,
                                     ),
                               ),
+                              WidgetSpan(child: SizedBox(width: 8.0)),
                               TextSpan(
                                 text: 'Snap',
                                 style: FlutterFlowTheme.of(context)
@@ -161,8 +162,6 @@ class _SplashWidgetState extends State<SplashWidget> {
                                     .override(
                                       fontFamily:
                                           GoogleFonts.inter().fontFamily,
-                                      color:
-                                          FlutterFlowTheme.of(context).primary,
                                       letterSpacing: 0.0,
                                     ),
                               )

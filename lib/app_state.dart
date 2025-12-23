@@ -61,6 +61,8 @@ class FFAppState extends ChangeNotifier {
 
   List<String> _userIngredientDislikes = [];
   List<String> get userIngredientDislikes => _userIngredientDislikes;
+
+  String? get currentLocale => null;
   set userIngredientDislikes(List<String> value) {
     _userIngredientDislikes = value;
   }
