@@ -1,3 +1,6 @@
+import 'package:salah_snap_version_second/l10n/app_localizations.dart';
+import 'package:salah_snap_version_second/pages/meals/dashboard/laguage-Page.dart';
+
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
@@ -78,7 +81,7 @@ class _ProfileWidgetState extends State<ProfileWidget> {
                             padding: EdgeInsetsDirectional.fromSTEB(
                                 0.0, 24.0, 0.0, 6.0),
                             child: Text(
-                              'ٱلسَّلَامُ عَلَيْكُمْ',
+                              AppLocalizations.of(context)!.profileGreeting,
                               style: FlutterFlowTheme.of(context)
                                   .labelLarge
                                   .override(
@@ -120,7 +123,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Thank you for supporting us!',
+                                    AppLocalizations.of(context)!
+                                        .profileThankYouTitle,
                                     style: FlutterFlowTheme.of(context)
                                         .titleMedium
                                         .override(
@@ -149,7 +153,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
                                     padding: EdgeInsetsDirectional.fromSTEB(
                                         0.0, 6.0, 0.0, 0.0),
                                     child: Text(
-                                      'As a local business, we thank you for supporting us and hope you enjoy.',
+                                      AppLocalizations.of(context)!
+                                          .profileThankYouDesc,
                                       style: FlutterFlowTheme.of(context)
                                           .labelLarge
                                           .override(
@@ -230,7 +235,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
                                                 EdgeInsetsDirectional.fromSTEB(
                                                     18.0, 0.0, 0.0, 0.0),
                                             child: Text(
-                                              'About Us',
+                                              AppLocalizations.of(context)!
+                                                  .aboutUs,
                                               style:
                                                   FlutterFlowTheme.of(context)
                                                       .bodyLarge
@@ -314,7 +320,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
                                                 EdgeInsetsDirectional.fromSTEB(
                                                     18.0, 0.0, 0.0, 0.0),
                                             child: Text(
-                                              'Contact Us',
+                                              AppLocalizations.of(context)!
+                                                  .contactUs,
                                               style:
                                                   FlutterFlowTheme.of(context)
                                                       .bodyLarge
@@ -362,7 +369,12 @@ class _ProfileWidgetState extends State<ProfileWidget> {
                                 hoverColor: Colors.transparent,
                                 highlightColor: Colors.transparent,
                                 onTap: () async {
-                                  context.pushNamed(ContactUsWidget.routeName);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => LanguagePage(),
+                                    ),
+                                  );
                                 },
                                 child: Column(
                                   mainAxisSize: MainAxisSize.max,
@@ -385,7 +397,7 @@ class _ProfileWidgetState extends State<ProfileWidget> {
                                             child: Padding(
                                               padding: EdgeInsets.all(4.0),
                                               child: Icon(
-                                                Icons.mail_outlined,
+                                                Icons.language_outlined,
                                                 color:
                                                     FlutterFlowTheme.of(context)
                                                         .secondary,
@@ -398,7 +410,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
                                                 EdgeInsetsDirectional.fromSTEB(
                                                     18.0, 0.0, 0.0, 0.0),
                                             child: Text(
-                                              'Contact Us',
+                                              AppLocalizations.of(context)!
+                                                  .changeLanguage,
                                               style:
                                                   FlutterFlowTheme.of(context)
                                                       .bodyLarge

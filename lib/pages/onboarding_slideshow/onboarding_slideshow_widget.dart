@@ -1,3 +1,5 @@
+import 'package:salah_snap_version_second/l10n/app_localizations.dart';
+
 import '/components/custom_appbar_widget.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
@@ -171,6 +173,8 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -229,7 +233,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                                 EdgeInsetsDirectional.fromSTEB(
                                                     0.0, 0.0, 0.0, 32.0),
                                             child: Text(
-                                              'Snap a watch to auto-set alarm',
+                                              l10n.onboardTitle1,
                                               textAlign: TextAlign.center,
                                               style:
                                                   FlutterFlowTheme.of(context)
@@ -278,7 +282,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                                 EdgeInsetsDirectional.fromSTEB(
                                                     0.0, 48.0, 0.0, 0.0),
                                             child: Text(
-                                              'Automatically alarm set',
+                                              l10n.onboardSubtitle1,
                                               textAlign: TextAlign.center,
                                               style:
                                                   FlutterFlowTheme.of(context)
@@ -314,7 +318,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                                 EdgeInsetsDirectional.fromSTEB(
                                                     0.0, 0.0, 0.0, 32.0),
                                             child: Text(
-                                              "Snap & set your own alarm time!!",
+                                              l10n.onboardTitle2,
                                               textAlign: TextAlign.center,
                                               style:
                                                   FlutterFlowTheme.of(context)
@@ -351,7 +355,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                                 topRight: Radius.circular(20.0),
                                               ),
                                               child: Image.asset(
-                                                'assets/images/image.jpg',
+                                                'assets/images/app.png',
                                                 height: 250.0,
                                                 fit: BoxFit.contain,
                                               ),
@@ -363,7 +367,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                                                 EdgeInsetsDirectional.fromSTEB(
                                                     0.0, 48.0, 0.0, 0.0),
                                             child: Text(
-                                              'Manage all your alarms in one place',
+                                              l10n.onboardSubtitle2,
                                               textAlign: TextAlign.center,
                                               style:
                                                   FlutterFlowTheme.of(context)
@@ -449,7 +453,7 @@ class _OnboardingSlideshowWidgetState extends State<OnboardingSlideshowWidget>
                         onPressed: () async {
                           context.pushNamed(DashboardWidget.routeName);
                         },
-                        text: 'Continue',
+                        text: l10n.continueBtn,
                         options: FFButtonOptions(
                           width: double.infinity,
                           height: 50.0,

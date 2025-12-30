@@ -84,19 +84,20 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
       debugLogDiagnostics: true,
       refreshListenable: appStateNotifier,
       navigatorKey: appNavigatorKey,
-      errorBuilder: (context, state) =>
-          appStateNotifier.loggedIn ? NavBarPage() : SplashWidget(),
+      errorBuilder: (context, state) => appStateNotifier.loggedIn
+          ? NavBarPage()
+          : OnboardingSlideshowWidget(),
       routes: [
         FFRoute(
           name: '_initialize',
           path: '/',
           builder: (context, _) => NavBarPage(),
           routes: [
-            FFRoute(
-              name: SplashWidget.routeName,
-              path: SplashWidget.routePath,
-              builder: (context, params) => SplashWidget(),
-            ),
+            // FFRoute(
+            //   name: OnboardingSlideshowWidget.routeName,
+            //   path: OnboardingSlideshowWidget.routePath,
+            //   builder: (context, params) => OnboardingSlideshowWidget(),
+            // ),
             FFRoute(
               name: OnboardingSlideshowWidget.routeName,
               path: OnboardingSlideshowWidget.routePath,

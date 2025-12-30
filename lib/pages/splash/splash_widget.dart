@@ -1,223 +1,216 @@
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
-import 'dart:ui';
-import '/index.dart';
-import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import 'splash_model.dart';
-export 'splash_model.dart';
+// import 'package:salah_snap_version_second/l10n/app_localizations.dart';
 
-class SplashWidget extends StatefulWidget {
-  const SplashWidget({super.key});
+// import '/flutter_flow/flutter_flow_theme.dart';
+// import '/flutter_flow/flutter_flow_util.dart';
+// import '/flutter_flow/flutter_flow_widgets.dart';
+// import 'dart:ui';
+// import '/index.dart';
+// import 'package:flutter/gestures.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter/services.dart';
+// import 'package:google_fonts/google_fonts.dart';
+// import 'package:provider/provider.dart';
+// import 'splash_model.dart';
+// export 'splash_model.dart';
 
-  static String routeName = 'Splash';
-  static String routePath = '/splash';
+// class SplashWidget extends StatefulWidget {
+//   const SplashWidget({super.key});
 
-  @override
-  State<SplashWidget> createState() => _SplashWidgetState();
-}
+//   static String routeName = 'Splash';
+//   static String routePath = '/splash';
 
-class _SplashWidgetState extends State<SplashWidget> {
-  late SplashModel _model;
-  final scaffoldKey = GlobalKey<ScaffoldState>();
+//   @override
+//   State<SplashWidget> createState() => _SplashWidgetState();
+// }
 
-  // Loading state track karne ke liye
-  bool _isNavigating = false;
+// class _SplashWidgetState extends State<SplashWidget> {
+//   late SplashModel _model;
+//   final scaffoldKey = GlobalKey<ScaffoldState>();
 
-  @override
-  void initState() {
-    super.initState();
-    _model = createModel(context, () => SplashModel());
+//   // Loading state track karne ke liye
+//   bool _isNavigating = false;
 
-    // POST-FRAME CALLBACK - UI ready hone ke baad run hoga
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   _startAutoNavigation();
-    // });
-  }
+//   @override
+//   void initState() {
+//     super.initState();
+//     _model = createModel(context, () => SplashModel());
 
-  // Auto navigation ko separate function mein
-  // Future<void> _startAutoNavigation() async {
-  //   await Future.delayed(const Duration(seconds: 2));
-  //   if (!mounted) return;
-  //   context.go('/onboarding');
-  // }
+//     // POST-FRAME CALLBACK - UI ready hone ke baad run hoga
+//     // WidgetsBinding.instance.addPostFrameCallback((_) {
+//     //   _startAutoNavigation();
+//     // });
+//   }
 
-  // Manual button press handler
-  Future<void> _handleGetStarted() async {
-    if (_isNavigating) return; // Duplicate navigation prevent karo
+//   // Auto navigation ko separate function mein
+//   // Future<void> _startAutoNavigation() async {
+//   //   await Future.delayed(const Duration(seconds: 2));
+//   //   if (!mounted) return;
+//   //   context.go('/onboarding');
+//   // }
 
-    setState(() {
-      _isNavigating = true;
-    });
+//   // Manual button press handler
+//   Future<void> _handleGetStarted() async {
+//     if (_isNavigating) return; // Duplicate navigation prevent karo
 
-    HapticFeedback.lightImpact();
+//     setState(() {
+//       _isNavigating = true;
+//     });
 
-    // Small delay for smooth transition
-    await Future.delayed(const Duration(milliseconds: 100));
+//     HapticFeedback.lightImpact();
 
-    if (!mounted) return;
+//     // Small delay for smooth transition
+//     await Future.delayed(const Duration(milliseconds: 100));
 
-    try {
-      context.pushNamed(OnboardingSlideshowWidget.routeName);
-    } catch (e) {
-      debugPrint('Navigation error: $e');
-      if (mounted) {
-        setState(() {
-          _isNavigating = false;
-        });
-      }
-    }
-  }
+//     if (!mounted) return;
 
-  @override
-  void dispose() {
-    _model.dispose();
-    super.dispose();
-  }
+//     try {
+//       context.pushNamed(OnboardingSlideshowWidget.routeName);
+//     } catch (e) {
+//       debugPrint('Navigation error: $e');
+//       if (mounted) {
+//         setState(() {
+//           _isNavigating = false;
+//         });
+//       }
+//     }
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        body: SafeArea(
-          top: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Expanded(
-                child: Align(
-                  alignment: const AlignmentDirectional(0.0, 0.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Logo Container - Optimized
-                      Container(
-                        width: 250.0,
-                        height: 250.0,
-                        decoration: BoxDecoration(
-                          color:
-                              FlutterFlowTheme.of(context).secondaryBackground,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8.0),
-                          child: Image.asset(
-                            'assets/images/app.png',
-                            width: 231.02,
-                            height: 200.0,
-                            fit: BoxFit.cover,
-                            // Image caching enable karo
-                            cacheWidth: 250,
-                            cacheHeight: 250,
-                            // Error handling
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[300],
-                                child: const Icon(
-                                  Icons.image_not_supported,
-                                  size: 50,
-                                  color: Colors.grey,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      // Title Text - Optimized
-                      Padding(
-                        padding: const EdgeInsetsDirectional.fromSTEB(
-                            0.0, 24.0, 0.0, 0.0),
-                        child: RichText(
-                          textScaler: MediaQuery.of(context).textScaler,
-                          // Performance optimization
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Salat',
-                                style: FlutterFlowTheme.of(context)
-                                    .displaySmall
-                                    .override(
-                                      fontFamily:
-                                          GoogleFonts.inter().fontFamily,
-                                      letterSpacing: 0.0,
-                                    ),
-                              ),
-                              WidgetSpan(child: SizedBox(width: 8.0)),
-                              TextSpan(
-                                text: 'Snap',
-                                style: FlutterFlowTheme.of(context)
-                                    .displaySmall
-                                    .override(
-                                      fontFamily:
-                                          GoogleFonts.inter().fontFamily,
-                                      letterSpacing: 0.0,
-                                    ),
-                              )
-                            ],
-                            style: FlutterFlowTheme.of(context)
-                                .displaySmall
-                                .override(
-                                  fontFamily: GoogleFonts.inter().fontFamily,
-                                  fontSize: 32.0,
-                                  letterSpacing: 0.0,
-                                ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Button Section - Optimized
-              Padding(
-                padding:
-                    const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 12.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    FFButtonWidget(
-                      onPressed: _isNavigating ? null : _handleGetStarted,
-                      text: _isNavigating ? 'Loading...' : 'Get Started',
-                      options: FFButtonOptions(
-                        width: double.infinity,
-                        height: 50.0,
-                        padding: const EdgeInsetsDirectional.fromSTEB(
-                            0.0, 0.0, 0.0, 0.0),
-                        iconPadding: const EdgeInsetsDirectional.fromSTEB(
-                            0.0, 0.0, 0.0, 0.0),
-                        color: FlutterFlowTheme.of(context).primary,
-                        textStyle:
-                            FlutterFlowTheme.of(context).titleSmall.override(
-                                  fontFamily: GoogleFonts.inter().fontFamily,
-                                  letterSpacing: 0.0,
-                                ),
-                        elevation: 0.0,
-                        borderSide: const BorderSide(
-                          color: Colors.transparent,
-                          width: 1.0,
-                        ),
-                        borderRadius: BorderRadius.circular(25.0),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   void dispose() {
+//     _model.dispose();
+//     super.dispose();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final l10n = AppLocalizations.of(context)!;
+
+//     return GestureDetector(
+//       onTap: () {
+//         FocusScope.of(context).unfocus();
+//         FocusManager.instance.primaryFocus?.unfocus();
+//       },
+//       child: Scaffold(
+//         key: scaffoldKey,
+//         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+//         body: SafeArea(
+//           top: true,
+//           child: Column(
+//             mainAxisSize: MainAxisSize.max,
+//             children: [
+//               Expanded(
+//                 child: Align(
+//                   alignment: const AlignmentDirectional(0.0, 0.0),
+//                   child: Column(
+//                     mainAxisSize: MainAxisSize.max,
+//                     mainAxisAlignment: MainAxisAlignment.center,
+//                     children: [
+//                       // Logo Container - Optimized
+//                       Container(
+//                         width: 250.0,
+//                         height: 250.0,
+//                         decoration: BoxDecoration(
+//                           color:
+//                               FlutterFlowTheme.of(context).secondaryBackground,
+//                         ),
+//                         child: ClipRRect(
+//                           borderRadius: BorderRadius.circular(8.0),
+//                           child: Image.asset(
+//                             'assets/images/app.png',
+//                             width: 231.02,
+//                             height: 200.0,
+//                             fit: BoxFit.cover,
+//                             // Image caching enable karo
+//                             cacheWidth: 250,
+//                             cacheHeight: 250,
+//                             // Error handling
+//                             errorBuilder: (context, error, stackTrace) {
+//                               return Container(
+//                                 color: Colors.grey[300],
+//                                 child: const Icon(
+//                                   Icons.image_not_supported,
+//                                   size: 50,
+//                                   color: Colors.grey,
+//                                 ),
+//                               );
+//                             },
+//                           ),
+//                         ),
+//                       ),
+//                       // Title Text - Optimized
+//                       Padding(
+//                         padding: const EdgeInsetsDirectional.fromSTEB(
+//                             0.0, 24.0, 0.0, 0.0),
+//                         child: RichText(
+//                           text: TextSpan(
+//                             children: [
+//                               TextSpan(
+//                                 text: l10n.appNameSalat,
+//                                 style: FlutterFlowTheme.of(context)
+//                                     .displaySmall
+//                                     .override(
+//                                       fontFamily:
+//                                           GoogleFonts.inter().fontFamily,
+//                                       letterSpacing: 0.0,
+//                                     ),
+//                               ),
+//                               const WidgetSpan(child: SizedBox(width: 8)),
+//                               TextSpan(
+//                                 text: l10n.appNameSnap,
+//                                 style: FlutterFlowTheme.of(context)
+//                                     .displaySmall
+//                                     .override(
+//                                       fontFamily:
+//                                           GoogleFonts.inter().fontFamily,
+//                                       letterSpacing: 0.0,
+//                                     ),
+//                               ),
+//                             ],
+//                           ),
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               ),
+//               // Button Section - Optimized
+//               Padding(
+//                 padding:
+//                     const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 12.0),
+//                 child: Column(
+//                   mainAxisSize: MainAxisSize.max,
+//                   children: [
+//                     FFButtonWidget(
+//                       onPressed: _isNavigating ? null : _handleGetStarted,
+//                       text: _isNavigating ? l10n.loading : l10n.getStarted,
+//                       options: FFButtonOptions(
+//                         width: double.infinity,
+//                         height: 50.0,
+//                         padding: const EdgeInsetsDirectional.fromSTEB(
+//                             0.0, 0.0, 0.0, 0.0),
+//                         iconPadding: const EdgeInsetsDirectional.fromSTEB(
+//                             0.0, 0.0, 0.0, 0.0),
+//                         color: FlutterFlowTheme.of(context).primary,
+//                         textStyle:
+//                             FlutterFlowTheme.of(context).titleSmall.override(
+//                                   fontFamily: GoogleFonts.inter().fontFamily,
+//                                   letterSpacing: 0.0,
+//                                 ),
+//                         elevation: 0.0,
+//                         borderSide: const BorderSide(
+//                           color: Colors.transparent,
+//                           width: 1.0,
+//                         ),
+//                         borderRadius: BorderRadius.circular(25.0),
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }

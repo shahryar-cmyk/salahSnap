@@ -1,5 +1,5 @@
 // Export pages
-export '/pages/splash/splash_widget.dart' show SplashWidget;
+export '/pages/splash/splash_widget.dart' show OnboardingSlideshowWidget;
 export '/pages/onboarding_slideshow/onboarding_slideshow_widget.dart'
     show OnboardingSlideshowWidget;
 export '/pages/meals/dashboard/dashboard_widget.dart' show DashboardWidget;

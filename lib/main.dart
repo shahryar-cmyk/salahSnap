@@ -31,7 +31,7 @@ void main() async {
 
   runApp(
     ChangeNotifierProvider(
-      create: (_) => FFAppState(),
+      create: (_) => AppState(),
       child: MyApp(),
     ),
   );
@@ -99,22 +99,23 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+
     // 🔒 Jab tak router ready nahi hota
     if (!_initialized || _router == null) {
       return MaterialApp(
-        locale: const Locale('en'), // default
-
+        locale: appState.locale, // ✅ FIX
         supportedLocales: const [
           Locale('en'),
           Locale('ur'),
         ],
-
         localizationsDelegates: const [
+          AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        title: 'MealPlanner',
+        title: 'Salat Snap',
         scrollBehavior: MyAppScrollBehavior(),
         theme: ThemeData(
           brightness: Brightness.light,
@@ -125,10 +126,8 @@ class _MyAppState extends State<MyApp> {
           useMaterial3: false,
         ),
         themeMode: _themeMode,
-        home: Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
+        home: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
         ),
       );
     }
@@ -136,20 +135,27 @@ class _MyAppState extends State<MyApp> {
     // 🔥 Firebase initialize check
     if (Firebase.apps.isEmpty) {
       return MaterialApp(
+        locale: appState.locale, // ✅ FIX
+        supportedLocales: const [
+          Locale('en'),
+          Locale('ur'),
+        ],
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         debugShowCheckedModeBanner: false,
         home: const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
+          body: Center(child: CircularProgressIndicator()),
         ),
       );
     }
 
+    // ✅ MOST IMPORTANT FIX
     return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
-      title: 'Salat Snap',
-      scrollBehavior: MyAppScrollBehavior(),
-      locale: _locale ?? const Locale('en'),
+      locale: appState.locale, // 🔥 THIS WAS MISSING
       supportedLocales: const [
         Locale('en'),
         Locale('ur'),
@@ -160,6 +166,9 @@ class _MyAppState extends State<MyApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      debugShowCheckedModeBanner: false,
+      title: 'Salat Snap',
+      scrollBehavior: MyAppScrollBehavior(),
       theme: ThemeData(
         brightness: Brightness.light,
         useMaterial3: false,
@@ -235,7 +244,7 @@ class _NavBarPageState extends State<NavBarPage> {
               Icons.alarm,
               size: 24.0,
             ),
-            label: 'Set Alarm',
+            label: AppLocalizations.of(context)!.setAlarm,
             tooltip: '',
           ),
           BottomNavigationBarItem(
@@ -247,11 +256,22 @@ class _NavBarPageState extends State<NavBarPage> {
               Icons.settings_sharp,
               size: 24.0,
             ),
-            label: 'Setting',
+            label: AppLocalizations.of(context)!.setting,
             tooltip: '',
           )
         ],
       ),
     );
+  }
+}
+
+class AppState extends ChangeNotifier {
+  Locale _locale = const Locale('ur');
+
+  Locale get locale => _locale;
+
+  void changeLanguage(String languageCode) {
+    _locale = Locale(languageCode);
+    notifyListeners();
   }
 }

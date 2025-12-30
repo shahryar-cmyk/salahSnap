@@ -1,13 +1,6 @@
-// Automatic FlutterFlow imports
-import '/backend/schema/structs/index.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import 'index.dart'; // Imports other custom widgets
-import '/custom_code/actions/index.dart'; // Imports custom actions
-import '/flutter_flow/custom_functions.dart'; // Imports custom functions
+import 'package:salah_snap_version_second/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-// Begin custom widget code
-// DO NOT REMOVE OR MODIFY THE CODE ABOVE!
+import '/flutter_flow/flutter_flow_theme.dart';
 
 class ContactUs extends StatefulWidget {
   const ContactUs({
@@ -26,39 +19,23 @@ class ContactUs extends StatefulWidget {
 class _ContactUsState extends State<ContactUs> {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.email),
-                SizedBox(width: 10),
-                Text('support@salatsnap.com', style: TextStyle(fontSize: 16)),
+                const Icon(Icons.email),
+                const SizedBox(width: 10),
+                Text(l10n.contactEmail, style: const TextStyle(fontSize: 16)),
               ],
             ),
             const SizedBox(height: 10),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.phone),
-                SizedBox(width: 10),
-                Text('(123) 456-7890', style: TextStyle(fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.location_on),
-                SizedBox(width: 10),
-                Text('123 Example St, City, State 12345',
-                    style: TextStyle(fontSize: 16)),
-              ],
-            ),
           ],
         ),
       ),

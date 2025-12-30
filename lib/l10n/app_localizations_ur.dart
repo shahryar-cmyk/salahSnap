@@ -9,32 +9,157 @@ class AppLocalizationsUr extends AppLocalizations {
   AppLocalizationsUr([String locale = 'ur']) : super(locale);
 
   @override
-  String get appTitle => 'صلوٰۃ اسنیپ';
+  String get appTitle => 'صلاح سنیپ';
 
   @override
-  String get aboutUs => 'ہمارے بارے میں';
+  String get appNameSalat => 'صلاۃ';
 
   @override
-  String get contactUs => 'ہم سے رابطہ کریں';
+  String get appNameSnap => 'سنیپ';
+
+  @override
+  String get appName => 'صلاح سنیپ';
+
+  @override
+  String get getStarted => 'شروع کریں';
+
+  @override
+  String get loading => 'لوڈ ہو رہا ہے';
 
   @override
   String get language => 'زبان';
 
   @override
-  String get selectLanguage => 'زبان منتخب کریں';
+  String get changeLanguage => 'زبان تبدیل کریں';
 
   @override
-  String get aboutUsTitle => 'ہمارے بارے میں';
+  String get languageSubtitle => 'ایپ کی زبان تبدیل کریں';
 
   @override
-  String get aboutIntro => 'صلوٰۃ اسنیپ میں خوش آمدید — یہ ایک سادہ مگر طاقتور اسلامی ایپ ہے جو مسلمانوں کو دنیا کے کسی بھی کونے میں اپنی نمازوں سے جڑے رہنے میں مدد دیتی ہے۔';
+  String get prayerTimesTitle => 'نماز کے اوقات';
 
   @override
-  String get aboutBody => 'صلوٰۃ اسنیپ نماز کے اوقات سیٹ کرنے کا ایک منفرد طریقہ پیش کرتی ہے: بس گھڑی کی تصویر لیں، اور ایپ خودکار طور پر آپ کا مقام معلوم کر کے پانچوں نمازوں — فجر، ظہر، عصر، مغرب، عشاء — اور جمعہ کے لیے الارم سیٹ کر دے گی۔\n\nہم نے صلوٰۃ اسنیپ اس لیے بنائی تاکہ نماز کے اوقات یاد رکھنا آسان، ذہین اور سب کے لیے قابلِ رسائی ہو۔ بغیر کسی پیچیدہ سیٹنگ کے — بس ایک ایسا ذریعہ جو آپ کو کبھی نماز چھوڑنے نہ دے۔';
+  String get setAlarms => 'الارم سیٹ کریں';
 
   @override
-  String get weBelieve => 'ہم یقین رکھتے ہیں:';
+  String get setAlarm => 'الارم سیٹ کریں';
 
   @override
-  String get quote => 'نماز دین کا ستون ہے۔\nآئیے اسے مضبوطی اور آسانی کے ساتھ تھامے رکھیں۔';
+  String get setting => 'سیٹنگ';
+
+  @override
+  String get close => 'بند کریں';
+
+  @override
+  String get cancel => 'منسوخ';
+
+  @override
+  String get save => 'محفوظ کریں';
+
+  @override
+  String get camera => 'کیمرا';
+
+  @override
+  String get gallery => 'گیلری';
+
+  @override
+  String get capturedImage => 'محفوظ شدہ تصویر';
+
+  @override
+  String get step1ImagePreview => 'مرحلہ 1: تصویر کا پیش نظارہ';
+
+  @override
+  String get changeImage => 'تصویر تبدیل کریں';
+
+  @override
+  String get process => 'پروسیس کریں';
+
+  @override
+  String get editPrayerTimes => 'نماز کے اوقات میں ترمیم';
+
+  @override
+  String get imageAndOcrResult => 'تصویر اور OCR نتیجہ';
+
+  @override
+  String get removeAlphabets => 'حروف ہٹا دیں';
+
+  @override
+  String get rawExtractedText => 'خام متن (اوقات میں ترمیم کیلئے ٹیپ کریں):';
+
+  @override
+  String get clickSnapSetAlarms => 'تصویر لیں اور الارم سیٹ کریں';
+
+  @override
+  String get aboutUs => 'ہمارے بارے میں';
+
+  @override
+  String get aboutUsSubtitle => 'صلاح سنیپ کے بارے میں مزید جانیں';
+
+  @override
+  String get contactUs => 'ہم سے رابطہ کریں';
+
+  @override
+  String get contactUsSubtitle => 'ہم سے رابطہ کریں';
+
+  @override
+  String get dashboard => 'ڈیش بورڈ';
+
+  @override
+  String get profile => 'پروفائل';
+
+  @override
+  String get mealPlanner => 'میل پلانر';
+
+  @override
+  String get profileGreeting => 'ٱلسَّلَامُ عَلَيْكُمْ';
+
+  @override
+  String get profileThankYouTitle => 'آپ کی حمایت کا شکریہ!';
+
+  @override
+  String get profileThankYouDesc =>
+      'ایک مقامی کاروبار کے طور پر، ہم آپ کی حمایت کے شکر گزار ہیں اور امید کرتے ہیں کہ آپ کو ہماری سروس پسند آئے گی۔';
+
+  @override
+  String get aboutIntro =>
+      'صلاح سنیپ ایک جدید اور آسان اسلامی ایپ ہے جو مسلمانوں کو دنیا کے کسی بھی حصے میں اپنی نمازوں کے اوقات کی پابندی میں مدد دیتی ہے۔';
+
+  @override
+  String get aboutDetails =>
+      'صلاح سنیپ نماز کے اوقات مقرر کرنے کا ایک جدید طریقہ فراہم کرتی ہے۔ بس نماز کے اوقات پر موجود QR کوڈ اسکین کریں، اور ایپ فوری طور پر درست نماز کے اوقات حاصل کر لے گی۔\n\nQR کوڈ اسکین کرنے کے بعد، صلاح سنیپ خودکار طور پر پانچوں نمازوں — فجر، ظہر، عصر، مغرب، عشاء — اور جمعہ کی نماز کے لیے الارم سیٹ کر دیتی ہے۔ نہ دستی اندراج، نہ پیچیدہ سیٹنگ — بس اسکین کریں، تصدیق کریں اور نماز سے جڑے رہیں۔';
+
+  @override
+  String get aboutBeliefTitle => 'ہمارا مقصد:';
+
+  @override
+  String get aboutQuoteAuthor => 'شیف رون';
+
+  @override
+  String get aboutQuoteText =>
+      '“نماز دین کا ستون ہے۔”\nصلاح سنیپ آپ کو اس ستون کی حفاظت میں آسانی اور درستگی کے ساتھ مدد فراہم کرتی ہے۔';
+
+  @override
+  String get contactEmail => 'salatsnap@srafique.com';
+
+  @override
+  String get contactPhone => '(123) 456-7890';
+
+  @override
+  String get contactAddress => '123 مثال اسٹریٹ، شہر، ریاست 12345';
+
+  @override
+  String get onboardTitle1 => 'QR کوڈ اسکین کر کے نماز کے اوقات حاصل کریں';
+
+  @override
+  String get onboardSubtitle1 => 'فوری طور پر درست نماز کے اوقات حاصل کریں';
+
+  @override
+  String get onboardTitle2 => 'نماز کے الارمز خودکار طور پر سیٹ کریں';
+
+  @override
+  String get onboardSubtitle2 =>
+      'ایک ہی اسکین میں تمام نمازوں کے الارمز سیٹ ہو جائیں';
+
+  @override
+  String get continueBtn => 'جاری رکھیں';
 }

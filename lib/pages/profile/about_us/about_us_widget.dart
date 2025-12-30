@@ -117,7 +117,7 @@ class _AboutUsWidgetState extends State<AboutUsWidget> {
                           padding: EdgeInsetsDirectional.fromSTEB(
                               0.0, 0.0, 0.0, 6.0),
                           child: Text(
-                            'Welcome to Salat Snap – a simple yet powerful Islamic app designed to help Muslims stay connected with their prayers, no matter where they are in the world.\n\n',
+                            l10n.aboutIntro,
                             style: FlutterFlowTheme.of(context)
                                 .displaySmall
                                 .override(
@@ -137,7 +137,7 @@ class _AboutUsWidgetState extends State<AboutUsWidget> {
                           ),
                         ),
                         Text(
-                          'Salat Snap offers a unique way to set prayer times: just take a picture of a clock, and the app will automatically detect your location and set alarms for all five daily prayers — Fajr, Dhuhr, Asr, Maghrib, Isha — as well as Jumuah on Fridays.\n\nWe created Salat Snap to make prayer time reminders easy, smart, and accessible for everyone. No complicated settings, no confusion — just a thoughtful tool to help you never miss a prayer again.\n\n',
+                          l10n.aboutDetails,
                           style:
                               FlutterFlowTheme.of(context).labelLarge.override(
                                     font: GoogleFonts.inter(
@@ -166,7 +166,7 @@ class _AboutUsWidgetState extends State<AboutUsWidget> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'We believe:',
+                                l10n.aboutBeliefTitle,
                                 style: FlutterFlowTheme.of(context)
                                     .headlineSmall
                                     .override(
@@ -210,7 +210,7 @@ class _AboutUsWidgetState extends State<AboutUsWidget> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    'Chef Ron',
+                                                    l10n.aboutQuoteAuthor,
                                                     style: FlutterFlowTheme.of(
                                                             context)
                                                         .titleMedium
@@ -247,7 +247,7 @@ class _AboutUsWidgetState extends State<AboutUsWidget> {
                                                             .fromSTEB(0.0, 6.0,
                                                                 0.0, 0.0),
                                                     child: Text(
-                                                      '“Prayer is the pillar of faith.”\nLet’s hold onto it with strength and ease, together.',
+                                                      l10n.aboutQuoteText,
                                                       style:
                                                           FlutterFlowTheme.of(
                                                                   context)

@@ -68,7 +68,7 @@ class _ContactUsWidgetState extends State<ContactUsWidget> {
             },
           ),
           title: Text(
-            'ContactUs',
+            'ContactU',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   font: GoogleFonts.inter(
                     fontWeight:
